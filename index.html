@@ -44,11 +44,15 @@ input[type=text]{font:inherit;color:var(--tx);background:var(--bg);border:1px so
 .hdr{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;padding:10px 14px;border-bottom:1px solid var(--line)}
 .hdr span:nth-child(odd){color:var(--mut)}
 footer{color:var(--mut);font-size:12px;margin:12px 2px}
-.btnlike{display:inline-block;font-weight:600;background:var(--btn);border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer}.btnlike:hover{border-color:var(--acc)}
+.dir{font-weight:700}.plan{color:var(--mut);font-size:12.5px;white-space:pre-line;overflow-wrap:anywhere}
+button.primary{background:var(--acc);border-color:var(--acc);color:#fff}button.primary:disabled{background:var(--btn);color:var(--tx);border-color:var(--line)}
+.seg{display:flex;gap:14px;flex-wrap:wrap;font-size:13px}.seg label{display:flex;gap:5px;align-items:center;color:var(--tx);font-size:13px}
+#szrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btnlike{display:inline-block;font-weight:600;background:var(--btn);border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer}.btnlike:hover{border-color:var(--acc)}.btnlike.dis{opacity:.45;pointer-events:none}
 #pick2{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
-.bigpad{padding:14px}.bigpad p{margin:0 0 10px;color:var(--mut);font-size:12.5px}.bigrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
-#brows tr{cursor:default}#bgs{white-space:pre-line;font-size:12.5px;margin:10px 0;color:var(--mut)}
-.bigout{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+.xpad{padding:14px}.xpad p{margin:0 0 10px;color:var(--mut);font-size:12.5px}.xrow{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+#xrows tr{cursor:default}#xs{font-size:12.5px;margin-top:10px;color:var(--mut)}
+td button{padding:3px 9px;font-size:12px}
 </style></head><body>
 <div class="wrap">
 <div class="top">
@@ -65,27 +69,29 @@ footer{color:var(--mut);font-size:12px;margin:12px 2px}
    <dt>Checksum:</dt><dd id="c">-</dd>
    <dt>SHA-1:</dt><dd id="sh" class="mono" style="font-size:12px">-</dd>
    <dt>Copyright:</dt><dd id="cp">-</dd>
+   <dt id="xr" hidden>Extended ROM:</dt><dd id="xrd" class="mono" style="font-size:12px" hidden></dd>
    <dt>Source File(s):</dt><dd id="s">-</dd>
   </dl>
   <div class="note" id="note"></div>
  </div>
  <div class="card btns">
-  <button id="b1" disabled>Output single BIN file</button>
-  <button id="b2" disabled>Output split HI/LO BIN files</button>
-  <button id="b3" disabled>Output ROM for Emulator</button>
-  <button id="flip" hidden>Swap HI/LO</button>
-  <label>Output size per file: <select id="sz" disabled><option value="131072">128 KB</option><option value="262144">256 KB</option><option value="524288" selected>512 KB (e.g. 27C400)</option><option value="1048576">1 MB (e.g. 27C800)</option><option value="2097152">2 MB (e.g. 27C160)</option></select><br>The image is repeated to fill the chosen size.</label>
+  <div class="dir" id="dir">Load a file to begin</div>
+  <div class="seg" id="optrow" hidden><label><input type="radio" name="om" value="single" checked> Single .bin</label><label><input type="radio" name="om" value="split"> Split HI / LO .bin</label></div>
+  <label id="szrow" hidden>EPROM size per file <select id="sz"></select><small>Data is repeated to fill the chip.</small></label>
+  <div class="plan" id="plan"></div>
+  <button id="dl" class="primary" disabled>Download</button>
+  <button id="flip" hidden>Swap HI / LO</button>
  </div>
 </div>
 <div id="toast"></div>
 <div class="tabs">
- <button class="tab on" data-t="mod">Resident Modules (RomTags)</button>
- <button class="tab" data-t="hex">Hex &amp; Header Inspector</button>
- <button class="tab" data-t="big">1MB / Replace modules</button>
+ <button class="tab on" data-t="mod">Modules</button>
+ <button class="tab" data-t="hex">Hex &amp; Header</button>
+ <button class="tab" data-t="ext">Extended ROM (1MB)</button>
 </div>
 <div class="panel">
  <div id="mod"><div class="scroll"><table>
-  <thead><tr><th>Offset</th><th>Module Name</th><th>Version</th><th>Type</th><th>Priority</th><th>ID String</th></tr></thead>
+  <thead><tr><th>Offset</th><th>Module Name</th><th>Version</th><th>Type</th><th>Priority</th><th>ID String</th><th></th></tr></thead>
   <tbody id="rows"></tbody></table>
   <div class="empty" id="empty">Load an Amiga Kickstart ROM or BIN image to view resident modules.</div></div></div>
  <div id="hex" hidden>
@@ -95,16 +101,15 @@ footer{color:var(--mut);font-size:12px;margin:12px 2px}
    <span class="mono" id="hr" style="color:var(--mut)"></span></div>
   <pre id="hx">Load a ROM or BIN image to inspect it.</pre>
  </div>
- <div id="big" hidden><div class="bigpad">
-  <p>Builds a 1MB Kickstart: a second 512 KB bank at $E00000 is added and the ROM is patched to scan it. Modules you pick from a donor ROM are moved into that bank, the original is switched off and its priority is kept. For Hyperion Kickstarts (3.1.4, 3.2) on A500+/A600 (one 27C800) and A1200 (two 27C400). Not tested on real hardware — try the result in an emulator first.</p>
-  <div class="note" id="bgm" style="margin:0 0 10px"></div>
-  <div class="bigrow"><label class="btnlike" for="pick2">Choose donor ROM…</label><span id="bgd" style="color:var(--mut)">No donor ROM chosen</span></div>
-  <div class="scroll"><table><thead><tr><th></th><th>Module</th><th>In your ROM</th><th>In donor</th><th>Size</th><th>Priority</th><th>Notes</th></tr></thead><tbody id="brows"></tbody></table><div class="empty" id="bempty"></div></div>
-  <div id="bgs"></div>
-  <div class="bigout"><button id="o1" disabled>1MB ROM for emulator (.rom)</button><button id="o2" disabled>Single 1MB BIN: A500+ / A600 (one 27C800)</button><button id="o3" disabled>HI/LO BIN files: A1200 (two 27C400)</button><button id="o4" disabled>Extension bank only (.rom)</button></div>
+ <div id="xp" hidden><div class="xpad">
+  <p>Add modules in a second 512 KB bank, for A500+, A600 and A1200 Hyperion Kickstarts (3.1.4, 3.2). The result is a 1 MB image: one 27C800 for A500+/A600, or two 27C400 (HI/LO) for the A1200. A module with the same name as one in the ROM replaces it. Otherwise it is added as new, for example icon.library, workbench.library or ehide.device. Use module files saved from the Modules tab, or Amiga executables that contain a resident tag. Not tested on real hardware — try the result in an emulator first.</p>
+  <div class="note" id="xm" style="margin:0 0 10px" hidden></div>
+  <div class="xrow"><label class="btnlike" id="xlab" for="pick2">Add module files…</label><label><input type="checkbox" id="xkeep" checked> Keep the priority of a replaced module</label></div>
+  <div class="scroll"><table><thead><tr><th>Module</th><th>Version</th><th>Size</th><th>What happens</th><th></th></tr></thead><tbody id="xrows"></tbody></table><div class="empty" id="xempty"></div></div>
+  <div id="xs"></div>
  </div></div>
 </div>
-<footer>Everything runs in your browser — your files are never uploaded. The hex view shows the image in normal ROM byte order. Drop a known-kickstarts.csv or kickstart-versions.txt file here to use your own list.</footer>
+<footer>Everything runs in your browser — your files are never uploaded. The hex view shows the image in normal ROM byte order. Drop a known-kickstarts.csv file on the page to use your own list.</footer>
 <input type="file" id="pick" multiple>
 <input type="file" id="pick2" multiple>
 </div>
@@ -150,7 +155,6 @@ ver:47.*|Kickstart 3.2 (Hyperion Entertainment)`;
 const $=s=>document.querySelector(s),KB=524288;
 const hx=(n,w=6)=>'$'+n.toString(16).toUpperCase().padStart(w,'0'),kb=n=>(n/1024)+' KB';
 const NT={0:'UNKNOWN',1:'TASK',3:'DEVICE',8:'RESOURCE',9:'LIBRARY'};
-let S={mode:'',f:[],rules:[],flip:false,a:null,hi:null,lo:null,note:'',off:0};
 
 function parseRules(t){return t.split('\n').map(l=>l.trim()).filter(l=>l&&l[0]!=='#').map(l=>{
  const p=l.split('|').map(x=>x.trim());if(p.length<2||!p[1])return null;
@@ -160,7 +164,6 @@ function parseRules(t){return t.split('\n').map(l=>l.trim()).filter(l=>l&&l[0]!=
  else if(/^sha1:/i.test(m)){r.sha=m.slice(5).trim().toLowerCase();if(!/^[0-9a-f]{40}$/.test(r.sha))return null}
  else return null;
  return r}).filter(Boolean)}
-S.base=parseRules(LIST);S.csv=[];S.rules=S.base;
 
 function form(d){
  if(d.length>=11&&String.fromCharCode(...d.subarray(0,11))==='AMIROMTYPE1')return'enc';
@@ -189,23 +192,118 @@ function trim(d){ // strip a mirrored copy or blank padding (e.g. 256 KB of ROM 
  return d}
 function has(d,t){const p=[...t].map(c=>c.charCodeAt(0)),e=d.length-p.length;
  for(let i=0;i<=e;i++){if(d[i]!==p[0])continue;let j=1;while(j<p.length&&d[i+j]===p[j])j++;if(j===p.length)return true}return false}
-function scan(r){ // exec Resident tags: $4AFC, self pointer, version@+11, type@+12, pri@+13, name@+14, id@+18
- const o=[],v=new DataView(r.buffer,r.byteOffset,r.byteLength);
- const str=(b,p)=>{const f=p-b;if(!p||f<0||f>=r.length)return null;let s='';
-  for(let i=f;i<r.length&&s.length<120;i++){const c=r[i];if(c<32||(c>=127&&c<160))break;s+=String.fromCharCode(c)}return s.trim()};
+let S={mode:'',f:[],rules:[],flip:false,a:null,x:null,hi:null,lo:null,kf:null,note:'',off:0,ext:[],keepPri:true,out:null,sz:0,big:null,bigErr:'',elig:''};
+S.base=parseRules(LIST);S.csv=[];S.rules=S.base;
+// <engine>
+const BASE=0xF80000,XB=0xE00000,BANK=524288;
+const u32=(r,o)=>((r[o]<<24|r[o+1]<<16|r[o+2]<<8|r[o+3])>>>0);
+const p32=(r,o,v)=>{r[o]=v>>>24&255;r[o+1]=v>>>16&255;r[o+2]=v>>>8&255;r[o+3]=v&255};
+const cstr=(r,b,p)=>{const f=p-b;if(!p||f<0||f>=r.length)return null;let s='';for(let i=f;i<r.length&&s.length<120;i++){const c=r[i];if(c<32||(c>=127&&c<160))break;s+=String.fromCharCode(c)}return s.trim()};
+const cat=(...L)=>{const r=new Uint8Array(L.reduce((n,x)=>n+x.length,0));let o=0;for(const x of L){r.set(x,o);o+=x.length}return r};
+// Resident tags: $4AFC, self pointer, EndSkip@+6, version@+11, type@+12, pri@+13, name@+14, id@+18. "start" is where the module's code begins (the previous module's end).
+function scan(r){
+ const o=[];
  for(let i=0;i+26<=r.length;i+=2){
   if(r[i]!==0x4A||r[i+1]!==0xFC)continue;
-  const t=v.getUint32(i+2);if(t<0xE00000||t>0xFFFFFF)continue;
+  const t=u32(r,i+2);if(t<0xE00000||t>0xFFFFFF)continue;
   const b=t-i;if(b&0xFFFF)continue;
-  const n=str(b,v.getUint32(i+14));if(!n)continue;
-  o.push({off:i,ver:r[i+11],type:r[i+12],pri:r[i+13]<<24>>24,name:n,id:str(b,v.getUint32(i+18))||''})}
+  const n=cstr(r,b,u32(r,i+14));if(!n)continue;
+  const e=u32(r,i+6)-b;
+  o.push({off:i,base:b,ver:r[i+11],type:r[i+12],pri:r[i+13]<<24>>24,name:n,id:cstr(r,b,u32(r,i+18))||'',end:e>i+22&&e<=r.length?e:0})}
+ let prev=0;for(const m of o){m.start=m.off-prev>=0&&m.off-prev<=0x400?prev:m.off;if(m.end)prev=m.end}
  return o}
+const absOp=w=>w===0x4EB9||w===0x4EF9||w===0x4879||(w&0xF1FF)===0x41F9||(w&0xC1FF)===0x203C; // JSR/JMP/PEA/LEA abs.l, MOVE.L #imm
+// A module's body, its absolute pointers into itself (to rebase), and calls to fixed addresses elsewhere in the ROM (which stop it being moved).
+function extract(rom,m){
+ const body=rom.slice(m.start,m.end),lo=m.base+m.start,hi=m.base+m.end,tag=m.off-m.start,rel=[],outw=[];
+ for(let o=0;o+4<=body.length;o+=2){
+  const v=u32(body,o);
+  if(v>=lo&&v<=hi){let k='uncertain';
+   if(o===tag+2||o===tag+6||o===tag+14||o===tag+18||o===tag+22)k='romtag';
+   else if(o>=2&&absOp(body[o-2]<<8|body[o-1]))k='opcode';
+   else if((lo+o)%4===0)k='aligned';
+   rel.push([o,k])}
+  else if(v>=m.base&&v<m.base+rom.length&&o>=2&&absOp(body[o-2]<<8|body[o-1]))outw.push(o)}
+ return{body,rel,outw}}
+// A ROM module as an AmigaDOS hunk file (one code hunk + RELOC32), padded so it keeps its 4-byte alignment.
+function toHunk(rom,m){
+ if(!m.end)return{err:'This module has no valid end address.'};
+ const x=m.x||(m.x=extract(rom,m));
+ if(x.outw.length)return{err:m.name+' calls fixed addresses elsewhere in its own ROM, so it can’t be exported on its own.'};
+ const pad=m.start%4,lo=m.base+m.start,len=(pad+x.body.length+3)&~3,data=new Uint8Array(len),n=x.rel.length;
+ data.set(x.body,pad);for(const[o]of x.rel)p32(data,pad+o,u32(x.body,o)-lo+pad);
+ const w=[0x3F3,0,1,0,0,len/4,0x3E9,len/4],T=[0x3EC,n,0,...x.rel.map(q=>q[0]+pad),0],out=new Uint8Array(32+len+(n?T.length*4:0)+4);
+ w.forEach((v,i)=>p32(out,i*4,v));out.set(data,32);let p=32+len;
+ if(n){T.forEach((v,i)=>p32(out,p+i*4,v));p+=T.length*4}
+ p32(out,p,0x3F2);return{data:out,rel:n}}
+const isHunk=d=>d.length>=32&&u32(d,0)===0x3F3;
+function parseHunk(d){
+ const L=o=>u32(d,o);let p=4;
+ for(let g=0;;g++){const n=L(p);p+=4;if(!n)break;p+=n*4;if(g>64)throw new Error('damaged hunk header')}
+ const first=L(p+4),last=L(p+8),n=last-first+1;p+=12;
+ if(!(n>=1&&n<=16))throw new Error('unsupported hunk layout');
+ const sizes=[];for(let i=0;i<n;i++){const w=L(p);p+=4;if(w>>>30===3)p+=4;sizes.push((w&0x3FFFFFFF)*4)}
+ const H=[];
+ for(let i=0;i<n;i++){
+  const h={data:new Uint8Array(sizes[i]),rel:[]};
+  for(;;){
+   if(p>d.length)throw new Error('the file is cut short');
+   const t=L(p)&0x3FFFFFFF;p+=4;
+   if(t===0x3E9||t===0x3EA){const c=(L(p)&0x3FFFFFFF)*4;p+=4;if(c>sizes[i]||p+c>d.length)throw new Error('damaged code hunk');h.data.set(d.subarray(p,p+c));p+=c}
+   else if(t===0x3EB){if(sizes[i])throw new Error('it has a BSS (RAM) hunk, which can’t live in a ROM');p+=4}
+   else if(t===0x3EC){for(;;){const c=L(p);p+=4;if(!c)break;const tg=L(p);p+=4;if(tg>=n||p+c*4>d.length)throw new Error('damaged relocation table');for(let k=0;k<c;k++){h.rel.push([L(p),tg]);p+=4}}}
+   else if(t===0x3F7){let q=p;for(;;){const c=d[q]<<8|d[q+1],tg=d[q+2]<<8|d[q+3];q+=4;if(!c)break;if(tg>=n)throw new Error('damaged relocation table');for(let k=0;k<c;k++){h.rel.push([d[q]<<8|d[q+1],tg]);q+=2}}p=(q+3)&~3}
+   else if(t===0x3F0){for(;;){const c=L(p)&0xFFFFFF;p+=4;if(!c)break;p+=c*4+4}}
+   else if(t===0x3F1||t===0x3E8){p+=4+(L(p)&0xFFFFFF)*4}
+   else if(t===0x3F2)break;
+   else throw new Error('unsupported hunk type $'+t.toString(16))}
+  H.push(h)}
+ return H}
+// Lay the hunks out one after another as if loaded at addr, applying their relocations.
+function placeHunk(H,addr){
+ const B=[];let n=0;for(const h of H){B.push(n);n+=h.data.length}
+ const o=new Uint8Array(n);H.forEach((h,i)=>o.set(h.data,B[i]));
+ H.forEach((h,i)=>{for(const[off,tg]of h.rel){const q=B[i]+off;if(q<0||q+4>n)throw new Error('a relocation points outside the code');p32(o,q,(u32(o,q)+addr+B[tg])>>>0)}});
+ return o}
+function findTag(b,addr){for(let i=0;i+26<=b.length;i+=2)if(b[i]===0x4A&&b[i+1]===0xFC&&u32(b,i+2)===addr+i){const n=cstr(b,addr,u32(b,i+14));if(n)return{off:i,name:n,id:cstr(b,addr,u32(b,i+18))||'',pri:b[i+13]<<24>>24,type:b[i+12],ver:b[i+11]}}return null}
+function loadModule(name,d){
+ if(!isHunk(d))throw new Error('not an Amiga hunk file');
+ const H=parseHunk(d),pl=placeHunk(H,XB),tag=findTag(pl,XB);
+ if(!tag)throw new Error('it has no resident tag (RomTag), so it can’t run from a ROM');
+ return{n:name,H,tag,size:pl.length}}
+function patchScan(main){ // Hyperion scantable F80000,<exec end> F80000,1000000 F00000,F80000 -> F80000,1000000 E00000,E80000 F00000,F80000
+ const ex=scan(main).find(m=>m.name==='exec.library');if(!ex||!ex.end)throw new Error('exec.library not found');
+ const old=[BASE,BASE+ex.end,BASE,0x1000000,0xF00000,0xF80000,0xFFFFFFFF],nw=[BASE,0x1000000,XB,XB+BANK,0xF00000,0xF80000,0xFFFFFFFF],hits=[];
+ for(let i=0;i+28<=main.length;i+=2){let ok=true;for(let j=0;j<7;j++)if(u32(main,i+j*4)!==old[j]){ok=false;break}if(ok)hits.push(i)}
+ if(hits.length!==1)throw new Error('the exec scantable of this ROM was not found ('+hits.length+' matches)');
+ const r=main.slice();nw.forEach((v,j)=>p32(r,hits[0]+j*4,v));return{rom:r,at:hits[0]}}
+function fixSum(b){const r=b.slice(),n=r.length;p32(r,n-24,0);let s=0;for(let i=0;i<n;i+=4){s+=u32(r,i);if(s>0xFFFFFFFF)s=s-0x100000000+1}p32(r,n-24,(~s)>>>0);return r}
+function mi(mods,it){ // the ROM module an added module replaces: same name (and same ID-string prefix when the ROM has several), else null; '?' if ambiguous
+ const M=mods.filter(m=>m.name===it.tag.name);if(M.length<=1)return M[0]||null;
+ const k=it.tag.id.split(' ')[0],q=M.filter(m=>m.id.split(' ')[0]===k);return q.length===1?q[0]:'?'}
+function buildBig(main,mods,items,keep){
+ const pt=patchScan(main),mr=pt.rom,ext=new Uint8Array(BANK).fill(255),lim=BANK-24,rep=[];let cur=0;
+ for(const it of items){
+  const old=mi(mods,it);if(old==='?')throw new Error(it.tag.name+' matches more than one module in this ROM.');
+  cur=(cur+3)&~3;const addr=XB+cur,pl=placeHunk(it.H,addr),tg=findTag(pl,addr);
+  if(!tg)throw new Error(it.n+': resident tag not found');
+  if(cur+pl.length>lim)throw new Error('The extension bank is full — remove a module.');
+  p32(pl,tg.off+6,addr+pl.length); // EndSkip = end of this module
+  if(old&&keep)pl[tg.off+13]=old.pri&255;
+  if(old){mr[old.off]=0;mr[old.off+1]=0} // switch the replaced module off
+  ext.set(pl,cur);rep.push({it,old,at:addr});cur+=pl.length}
+ p32(ext,BANK-20,BANK);for(let i=0;i<8;i++){ext[BANK-16+i*2]=0;ext[BANK-15+i*2]=0x18+i}
+ return{main:fixSum(mr),ext:fixSum(ext),rep,used:cur,at:pt.at}}
+// </engine>
+
 function analyse(rom){
  const f=form(rom),hdr=f==='rom',a={rom,f,hdr,cs:hdr?csum(rom):{ok:false,sum:0},ver:null};
  if(hdr&&rom.length>=16)a.ver=[rom[12]<<8|rom[13],rom[14]<<8|rom[15]];
- a.sha=sha1(rom);
- a.m=S.rules.find(r=>r.sha!==undefined?r.sha===a.sha:r.txt!==undefined?has(rom,r.txt):a.ver&&a.ver[0]===r.ver&&(r.rev<0||r.rev===a.ver[1]))||null;a.known=!!(a.m&&a.m.sha);
- a.mods=scan(trim(rom));a.ext=a.mods.some(m=>m.name==='cdtv.device');a.hd=header(rom);a.oth=others(rom,a.hd&&a.hd.cp);return a}
+ a.sha=sha1(rom);a.mods=scan(trim(rom));
+ const b=a.mods.length?a.mods[0].base:0;
+ a.ext=a.mods.some(m=>m.name==='cdtv.device')||b===0xE00000||b===0xF00000; // CDTV / CD32 Extended ROMs
+ a.m=S.rules.find(r=>r.sha!==undefined?r.sha===a.sha:r.txt!==undefined?has(rom,r.txt):!a.ext&&a.ver&&a.ver[0]===r.ver&&(r.rev<0||r.rev===a.ver[1]))||null;a.known=!!(a.m&&a.m.sha);
+ a.hd=header(rom);a.oth=others(rom,a.hd&&a.hd.cp);return a}
 function sha1(d){
  const n=d.length,L=((n+8>>6)+1)<<6,u=new Uint8Array(L);u.set(d);u[n]=128;
  const v=new DataView(u.buffer);v.setUint32(L-8,Math.floor(n/536870912));v.setUint32(L-4,(n<<3)>>>0);
@@ -226,7 +324,7 @@ function plat(a){
  if(!a.hdr)return{};
  const M=a.mods,nm=s=>M.some(m=>m.name.toLowerCase().includes(s)),id=s=>M.some(m=>m.id.toLowerCase().includes(s));
  const v=a.ver?a.ver[0]:0,card=nm('carddisk.device'),scsi=nm('scsi.device'),T=' (inferred)';
- if(a.ext)return{m:'CDTV'+(a.m?'':' (inferred)'),bus:0,t:''};
+ if(a.ext)return{m:a.m&&a.m.mach?a.m.mach:(M.some(m=>m.name==='cdtv.device')?'CDTV':'CD32')+' (inferred)',bus:0,t:''};
  if(a.known)return{m:a.m.mach,bus:a.m.bus,t:''};
  if(nm('a4000 bonus'))return M.some(m=>/\bncr\b/i.test(m.name))||id('a4000t_scsidisk')?{m:'A4000T'+T,bus:32,t:T}:{m:'A4000'+T,bus:32,t:T};
  if(nm('a3000 bonus'))return{m:'A3000 / A3000T'+T,bus:32,t:T};
@@ -250,18 +348,28 @@ function others(r,main){
  flush();return out}
 const sc=a=>(a.hdr?1:0)+(a.cs.ok?1:0);
 
+
 function recompute(){
- S.a=null;S.note='';S.hi=S.lo=null;S.off=0;
- if(S.mode==='rom')S.a=analyse(S.f[0].d);
- else if(S.mode==='bin'){
+ S.a=S.x=S.kf=null;S.note='';S.hi=S.lo=null;S.off=0;
+ if(S.mode==='rom'){S.a=analyse(S.f[0].d);S.kf=S.f[0]}
+ else if(S.mode==='rom2'){
+  const A=analyse(S.f[0].d),B=analyse(S.f[1].d);
+  if(A.ext!==B.ext){S.a=A.ext?B:A;S.x=A.ext?A:B;S.kf=S.f[A.ext?1:0]}
+  else{S.a=A;S.kf=S.f[0];S.note='Two .rom files are only used together for the CD32 (a Kickstart plus its Extended ROM). This pair isn’t that, so only the first is shown.'}}
+ else if(S.mode==='bin'||S.mode==='cd32bin'){
   const mk=d=>{const t=trim(d);return{x:analyse(t),n:t.length!==d.length?'The image held repeated or blank padding ('+kb(d.length)+'); trimmed to '+kb(t.length)+'.':''}};
-  if(S.f.length===1){const r=mk(swap(S.f[0].d));S.a=r.x;S.note=r.n}
+  if(S.f.length===1){
+   const d=S.f[0].d;S.mode='bin';
+   if(d.length===2*KB){ // CD32: one 1MB file = Extended ROM and Kickstart, each split HI/LO
+    const q=KB/2,k=join(d.subarray(q,2*q),d.subarray(3*q,4*q)),e=join(d.subarray(0,q),d.subarray(2*q,3*q));
+    if(form(k)==='rom'&&csum(k).ok){S.mode='cd32bin';S.a=analyse(k);S.x=analyse(e);S.kf=S.f[0];S.note='CD32 image: a 512 KB Kickstart and a 512 KB Extended ROM share this 1 MB file.'}}
+   if(S.mode==='bin'){const r=mk(swap(d));S.a=r.x;S.note=r.n;S.kf=S.f[0]}}
   else{
    const A=mk(join(S.f[0].d,S.f[1].d)),B=mk(join(S.f[1].d,S.f[0].d));
    let first=sc(B.x)<=sc(A.x);
    S.note=sc(A.x)===sc(B.x)?'Couldn’t tell HI from LO — assuming the first file is HI. Use “Swap HI/LO” if that’s wrong.':'HI/LO order detected automatically.';
    if(S.flip){first=!first;S.note='HI/LO order swapped manually.'}
-   S.hi=S.f[first?0:1];S.lo=S.f[first?1:0];
+   S.hi=S.f[first?0:1];S.lo=S.f[first?1:0];S.kf=S.hi;
    const R=first?A:B;S.a=R.x;if(R.n)S.note+='\n'+R.n}}}
 function warns(){
  const a=S.a,w=[];
@@ -272,41 +380,79 @@ function warns(){
   else if(S.mode==='bin'&&S.f.length===1)w.push('Not a complete Kickstart. If this is one half of a split pair, add the other .bin.');
   else w.push(S.mode==='bin'?'No valid Kickstart found when combining these files — try “Swap HI/LO”.':'No standard Kickstart header found.')}
  else if(!a.cs.ok&&!a.ext)w.push('Header found, but the checksum is not valid (patched or non-standard ROM, or a damaged file).');
- if(a.hdr&&!a.m&&a.ver)w.push('This version isn’t in the version list. Drop your own kickstart-versions.txt to add it.');
+ if(a.hdr&&!a.m&&a.ver)w.push('This version isn’t in the list. Add it to known-kickstarts.csv (or drop your own list on the page).');
  return w}
 
+// ---- output plan: what the Download button produces for the loaded files ----
+const defSplit=a=>a.ext||plat(a).bus===32;
+const baseName=()=>stem((S.kf||S.f[0]).n).replace(/[_-](hi|lo|high|low)$/i,'');
+function fillSizes(per){
+ const sel=$('#sz'),opts=[131072,262144,524288,1048576,2097152].filter(v=>v>=per);
+ const want=opts.includes(S.sz)?S.sz:(S.a&&S.a.ext?per:Math.max(per,KB));
+ sel.textContent='';for(const v of opts){const o=document.createElement('option');o.value=v;o.textContent=v>=1048576?v/1048576+' MB':v/1024+' KB';sel.append(o)}
+ sel.value=String(opts.includes(want)?want:opts[0])}
+const sz=n=>n>=1048576?n/1048576+' MB':n/1024+' KB';
+function plan(){
+ const a=S.a;if(!a||a.f==='enc')return null;
+ const base=baseName(),big=S.big,sfx=big?'_1mb':'',W=big?cat(big.main,big.ext):a.rom,xn=big?' (with the extended ROM added)':'';
+ if(S.mode==='cd32bin')return{dir:'CD32 .bin  →  .rom files',btn:'Download Kickstart + Extended .rom',desc:'Two files: '+base+'_kickstart.rom and '+base+'_extended.rom',files:()=>[{name:base+'_kickstart.rom',data:a.rom},{name:base+'_extended.rom',data:S.x.rom}]};
+ if(S.mode==='rom2'){
+  if(!S.x||a.rom.length!==KB||S.x.rom.length!==KB)return null;
+  return{dir:'CD32 .rom files  →  one .bin',btn:'Download CD32 .bin',desc:base+'_cd32.bin · 1 MB, Extended ROM and Kickstart each split HI/LO',files:()=>{const[kh,kl]=split(a.rom),[eh,el]=split(S.x.rom);return[{name:base+'_cd32.bin',data:cat(eh,kh,el,kl)}]}}}
+ if(S.mode==='bin')return{dir:(S.f.length===2?'Split HI/LO .bin  →  .rom':'.bin  →  .rom')+xn,btn:'Download .rom',desc:base+sfx+'.rom · '+sz(W.length),files:()=>[{name:base+sfx+'.rom',data:W}]};
+ const sp=S.out===null?defSplit(a):S.out==='split';
+ if(sp&&W.length%4)return null;
+ const per=sp?W.length/2:W.length,size=+$('#sz').value||per;
+ return{dir:'.rom  →  '+(sp?'split HI/LO .bin files':'.bin file')+xn,btn:sp?'Download HI + LO .bin':'Download .bin',bins:true,sp,per,
+  desc:sp?base+sfx+'_hi.bin and _lo.bin · '+sz(size)+' each':base+sfx+'.bin · '+sz(size),
+  files:()=>sp?(([h,l])=>[{name:base+sfx+'_hi.bin',data:rep(h,size)},{name:base+sfx+'_lo.bin',data:rep(l,size)}])(split(W)):[{name:base+sfx+'.bin',data:rep(swap(W),size)}]}}
+function outputs(){
+ let P=S.a?plan():null;
+ $('#dir').textContent=P?P.dir:'Load a file to begin';
+ $('#optrow').hidden=$('#szrow').hidden=!(P&&P.bins);
+ if(P&&P.bins){document.querySelector('input[name=om][value='+(P.sp?'split':'single')+']').checked=true;fillSizes(P.per);P=plan()}
+ $('#plan').textContent=P?P.desc:'';$('#dl').disabled=!P;$('#dl').textContent=P?P.btn:'Download';
+ $('#flip').hidden=!(S.mode==='bin'&&S.f.length===2)}
+$('#dl').onclick=()=>{const P=plan();if(P)save(P.files(),baseName())};
+document.querySelectorAll('input[name=om]').forEach(r=>r.onchange=()=>{S.out=r.value;outputs()});
+$('#sz').onchange=()=>{S.sz=+$('#sz').value;outputs()};
+$('#flip').onclick=()=>{S.flip=!S.flip;recompute();render()};
+
 function render(){
- const a=S.a,z=!S.mode?['Drop Kickstart file(s) here','Single .rom, single .bin, or split 32-bit BIN pair']
+ const a=S.a,z=!S.mode?['Drop Kickstart file(s) here','or tap to choose · .bin, split .bin pair, or .rom']
   :S.mode==='rom'?['Kickstart .rom loaded','Drop another file to replace it']
+  :S.mode==='rom2'?['Two .rom files loaded','Drop new files to replace them']
+  :S.mode==='cd32bin'?['CD32 .bin loaded','Drop another file to replace it']
   :S.f.length===1?['.bin loaded','Drop a second .bin if this is one half of a split pair']:['Two .bin files loaded','Drop new files to replace them'];
  $('#zt').textContent=z[0];$('#zs').textContent=z[1];
  const set=(id,t)=>$(id).textContent=t;
- if(!a){['#v','#rl','#p','#ar','#c','#sh','#cp','#s'].forEach(i=>set(i,'-'));$('#note').textContent='';
-  ['#b1','#b2','#b3'].forEach(i=>$(i).disabled=true);$('#sz').disabled=true;$('#flip').hidden=true;mods();hex();bigView();return}
- const ex=a.mods.find(m=>m.name==='exec.library'),ev=ex&&/\d+\.\d+/.exec(ex.id);
- const cd=a.ext&&a.mods.find(m=>m.name==='cdtv.device'),evs=cd?' · '+cd.id:ex&&a.hdr?' · '+ex.id:'';
- set('#v',(a.f==='enc'?'Encrypted ROM':a.m?a.m.name+(a.ver&&!a.ext?' ('+a.ver.join('.')+')':''):a.ext?'CDTV Extended ROM (version not in list)':a.ver?'Unrecognised Kickstart '+a.ver.join('.'):'Not a Kickstart image')+evs);
+ if(!a){['#v','#rl','#p','#ar','#c','#sh','#cp','#s'].forEach(i=>set(i,'-'));$('#note').textContent='';$('#xr').hidden=$('#xrd').hidden=true;S.big=null;S.elig='';outputs();mods();hex();extView();return}
+ const ex=a.mods.find(m=>m.name==='exec.library'),cd=a.ext&&a.mods.find(m=>m.name==='cdtv.device'),evs=cd?' · '+cd.id:ex&&a.hdr?' · '+ex.id:'';
+ set('#v',(a.f==='enc'?'Encrypted ROM':a.m?a.m.name+(a.ver&&!a.ext?' ('+a.ver.join('.')+')':''):a.ext?'Extended ROM (version not in list)':a.ver?'Unrecognised Kickstart '+a.ver.join('.'):'Not a Kickstart image')+evs);
  set('#rl',a.hd&&a.hd.rel||'-');
  const ot=a.oth||[];set('#cp',[a.hd&&a.hd.cp||''].concat(ot.slice(0,3).map(x=>'Also: '+x),ot.length>3?['+'+(ot.length-3)+' more']:[]).filter(Boolean).join('\n')||'-');
  const pl=plat(a);set('#p',pl.m||(a.hdr?'Not listed':'-'));
- set('#ar',a.ext?'CDTV Extended ROM; split gives 2 × '+kb(a.rom.length/2)+' images (HI + LO)':pl.bus===32?'32-bit (two 16-bit EPROMs: HI + LO)'+pl.t:pl.bus===16?'16-bit (single EPROM)'+pl.t:'-');
+ set('#ar',a.ext?'Extended ROM; split gives 2 × '+kb(a.rom.length/2)+' images (HI + LO)':pl.bus===32?'32-bit (two 16-bit EPROMs: HI + LO)'+pl.t:pl.bus===16?'16-bit (single EPROM)'+pl.t:'-');
  const c=$('#c');c.textContent='';
- if(a.hdr&&a.ext&&!a.cs.ok){c.append('n/a');const b=document.createElement('span');b.className='badge';b.style.background='var(--mut)';b.textContent='Not used by this ROM';c.append(b);c.title='Not every CDTV Extended ROM carries a Kickstart-style checksum, so none is checked.'}
+ if(a.hdr&&a.ext&&!a.cs.ok){c.append('n/a');const b=document.createElement('span');b.className='badge';b.style.background='var(--mut)';b.textContent='Not used by this ROM';c.append(b);c.title='Not every Extended ROM carries a Kickstart-style checksum, so none is checked.'}
  else if(a.hdr){c.append(hx(a.cs.st,8));const b=document.createElement('span');b.className='badge'+(a.cs.ok?'':' bad');b.textContent=a.cs.ok?'Valid':'Not valid';c.append(b);
   if(!a.cs.ok)c.append(' · sum '+hx(a.cs.sum,8)+' (should be $FFFFFFFF)');
   c.title='Stored checksum longword (end of ROM minus $18). All longwords in a good ROM add up to $FFFFFFFF.'}else c.textContent='-';
  const sh=$('#sh'),bd=document.createElement('span');sh.textContent=a.sha;bd.className='badge'+(a.known?'':' bad');bd.textContent=a.known?'Known good':'Not in known list';sh.append(bd);
- set('#s',S.mode==='bin'&&S.f.length===2?'HI: '+S.hi.n+'\nLO: '+S.lo.n:S.f[0].n);
+ set('#s',S.mode==='bin'&&S.f.length===2?'HI: '+S.hi.n+'\nLO: '+S.lo.n:S.f.map(f=>f.n).join('\n'));
+ const X=S.x;$('#xr').hidden=$('#xrd').hidden=!X;
+ if(X){const cs=X.cs.ok?'checksum valid':X.hdr?'checksum not valid':'no header';set('#xrd',(X.m?X.m.name:'Extended ROM')+' · '+kb(X.rom.length)+' · '+cs+' · '+(X.known?'known good':'not in known list')+'\n'+X.sha)}
  $('#note').textContent=[S.note].concat(warns()).filter(Boolean).join('\n');
- const ok=a.f!=='enc';
- $('#b1').disabled=$('#b2').disabled=!(S.mode==='rom'&&ok);$('#b3').disabled=!(S.mode==='bin'&&ok);$('#sz').disabled=S.mode!=='rom';
- $('#flip').hidden=!(S.mode==='bin'&&S.f.length===2);
- mods();hex();bigView()}
+ extCompute();outputs();mods();hex();extView()}
+const verOf=id=>{const m=/(\d+)\.(\d+)/.exec(id);return m?m[1]+'.'+m[2]:''};
+function dlMod(m){const h=toHunk(S.a.rom,m);if(h.err)return toast(h.err);
+ const n=(m.name+(verOf(m.id)?'_'+verOf(m.id):'')).replace(/[^\w.-]+/g,'_');save([{name:n,data:h.data}],n);toast('Saved '+n+' ('+h.data.length.toLocaleString('en-US')+' bytes, '+h.rel+' relocations). Add it to another ROM from the Extended ROM tab.')}
 function mods(){
  const t=$('#rows');t.textContent='';const m=S.a?S.a.mods:[];
  $('#empty').hidden=m.length>0;if(S.a&&!m.length)$('#empty').textContent='No resident modules found in this image.';
  for(const x of m){const tr=document.createElement('tr');
   [[hx(x.off,5),'o'],[x.name,'n'],[x.ver,''],['NT_'+(NT[x.type]||x.type),''],[x.pri,''],[x.id,'']].forEach(([v,k])=>{const td=document.createElement('td');td.textContent=v;td.className=k;tr.append(td)});
+  const td=document.createElement('td'),b=document.createElement('button'),h=toHunk(S.a.rom,x);b.textContent='Download';b.disabled=!!h.err;b.title=h.err||'Save this module as a hunk file';b.onclick=e=>{e.stopPropagation();dlMod(x)};td.append(b);tr.append(td);
   tr.onclick=()=>{S.off=x.off&~15;tab('hex');hex()};t.append(tr)}}
 function hex(){
  const r=S.a&&S.a.rom,h=$('#hdr');h.textContent='';
@@ -322,7 +468,47 @@ function hex(){
  for(let i=0;i<24;i++){const p=S.off+i*16;if(p>=r.length)break;const b=[...r.subarray(p,Math.min(p+16,r.length))];
   L.push(hx(p)+'  '+b.map(x=>x.toString(16).toUpperCase().padStart(2,'0')).join(' ').padEnd(47)+'  '+b.map(x=>x>31&&x<127?String.fromCharCode(x):'.').join(''))}
  $('#hx').textContent=L.join('\n');$('#hr').textContent=hx(S.off)+' – '+hx(Math.min(S.off+384,r.length)-1)+' of '+hx(r.length-1)}
-function tab(t){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));$('#mod').hidden=t!=='mod';$('#hex').hidden=t!=='hex';$('#big').hidden=t!=='big'}
+
+// ---- Extended ROM: second 512 KB bank at $E00000 holding added or replacement modules ----
+const vr=s=>{const m=/(\d+)\.(\d+)/.exec(s);return m?[+m[1],+m[2]]:[0,0]},vcmp=(a,b)=>{const x=vr(a),y=vr(b);return y[0]-x[0]||y[1]-x[1]};
+function extElig(){
+ const a=S.a;if(!a)return'Load a Kickstart first.';
+ if(S.mode==='cd32bin'||S.mode==='rom2')return'CD32 images already carry an Extended ROM.';
+ if(!a.hdr)return'This doesn’t look like a Kickstart image.';
+ if(a.ext)return'This is an Extended ROM, not a Kickstart.';
+ if(a.rom.length!==KB)return'Only 512 KB Kickstart images can be extended ('+kb(a.rom.length)+' loaded).';
+ if(!a.cs.ok)return'The checksum of this ROM isn’t valid, so it isn’t safe to build on.';
+ const pl=plat(a).m||'';if(/A3000|A4000|CD32/.test(pl))return pl.replace(' (inferred)','')+' ROMs need extra hardware (ROMY) for 1MB. This is limited to the A500+, A600 and A1200, which can address it as they are.';
+ try{patchScan(a.rom)}catch(e){return'Not supported yet: '+e.message+'. Only Hyperion Kickstarts (3.1.4, 3.2) can be extended so far, not 2.05 or 3.1.'}
+ return''}
+function extCompute(){
+ S.big=null;S.bigErr='';S.elig=extElig();
+ if(S.elig||!S.ext.length)return;
+ try{S.big=buildBig(S.a.rom,S.a.mods,S.ext,S.keepPri)}catch(e){S.bigErr=e.message}}
+function extView(){
+ const el=S.elig,msg=el||S.bigErr,t=$('#xrows');t.textContent='';
+ $('#xm').textContent=msg;$('#xm').hidden=!msg;
+ $('#xlab').classList.toggle('dis',!!el);$('#pick2').disabled=!!el;$('#xkeep').checked=S.keepPri;
+ document.querySelector('[data-t=ext]').textContent='Extended ROM (1MB)'+(S.ext.length?' · '+S.ext.length:'');
+ const mm=S.a?S.a.mods:[];
+ S.ext.forEach((it,i)=>{
+  const old=el?null:mi(mm,it),tr=document.createElement('tr'),td=(v,k)=>{const d=document.createElement('td');d.textContent=v;if(k)d.className=k;tr.append(d)};
+  td(it.tag.name,'n');td(it.tag.id||('v'+it.tag.ver));td((it.size/1024).toFixed(1)+' KB');
+  td(old==='?'?'Name matches several ROM modules — can’t tell which to replace':old?'Replaces '+old.id+' ('+(vcmp(old.id,it.tag.id)>0?'newer':vcmp(old.id,it.tag.id)<0?'older':'same version')+')'+(S.keepPri?' · priority '+old.pri+' kept':''):'Added as a new module');
+  const d=document.createElement('td'),b=document.createElement('button');b.textContent='Remove';b.onclick=()=>{S.ext.splice(i,1);render()};d.append(b);tr.append(d);t.append(tr)});
+ $('#xempty').hidden=S.ext.length>0;$('#xempty').textContent=el?'':'No modules added yet.';
+ const r=S.big;$('#xs').textContent=r?'Extension bank: '+(r.used/1024).toFixed(1)+' KB of 512 KB used. The ROM’s scan table is patched at '+hx(r.at,5)+' and both banks are re-checksummed. The Convert panel now produces a 1 MB image.':''}
+async function addModules(list){
+ if(S.elig)return toast(S.elig);
+ let n=0;
+ for(const f of list){const d=(await rd(f)).d;
+  try{const it=loadModule(f.name,d);
+   const k=x=>x.tag.name+'|'+x.tag.id.split(' ')[0],i=S.ext.findIndex(x=>k(x)===k(it));if(i>=0)S.ext.splice(i,1);S.ext.push(it);n++}
+  catch(e){toast(f.name+': '+e.message+'.')}}
+ if(n){render();tab('ext')}}
+$('#pick2').onchange=e=>{addModules(e.target.files);e.target.value=''};
+$('#xkeep').onchange=e=>{S.keepPri=e.target.checked;render()};
+function tab(t){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));$('#mod').hidden=t!=='mod';$('#hex').hidden=t!=='hex';$('#xp').hidden=t!=='ext'}
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>tab(b.dataset.t));
 const step=d=>{if(!S.a)return;S.off=Math.max(0,Math.min(S.off+d,(S.a.rom.length-1)&~15));hex()};
 $('#hp').onclick=()=>step(-384);$('#hn').onclick=()=>step(384);
@@ -341,26 +527,33 @@ function csvRules(t){const R=parseCSV(t);if(!R.length)return[];const h=R[0].map(
   if(!x.name)return null;if(/^[0-9a-f]{40}$/.test(sha)){x.sha=sha;return x}
   if(ver){x.ver=+ver[1];x.rev=ver[2]==='*'?-1:+ver[2];return x}return null}).filter(Boolean)}
 const toast=t=>$('#toast').textContent=t;
-const kind=async f=>{const e=(f.name.match(/\.(\w+)$/)||[])[1];const x=e&&e.toLowerCase();if(x==='rom'||x==='bin'||x==='txt'||x==='csv')return x;
- const k=form(new Uint8Array(await f.slice(0,16).arrayBuffer()));return k==='rom'||k==='enc'?'rom':k==='swp'?'bin':''};
+const kind=async f=>{const h=new Uint8Array(await f.slice(0,16).arrayBuffer());
+ if(h[0]===0&&h[1]===0&&h[2]===3&&h[3]===0xF3)return'hunk';
+ const e=(f.name.match(/\.(\w+)$/)||[])[1],x=e&&e.toLowerCase();if(x==='rom'||x==='bin'||x==='txt'||x==='csv')return x;
+ const k=form(h);return k==='rom'||k==='enc'?'rom':k==='swp'?'bin':''};
 const rd=async f=>({n:f.name,d:new Uint8Array(await f.arrayBuffer())});
-function put(m,f){S.mode=m;S.f=f;S.flip=false;recompute();$('#sz').value=S.a&&S.a.ext?'131072':'524288';render()}
+function put(m,f){S.mode=m;S.f=f;S.flip=false;S.ext=[];S.out=null;S.sz=0;recompute();render();tab('mod')}
 async function load(list){
- let fl=[...list];if(!fl.length)return;toast('');
- const k=await Promise.all(fl.map(kind));let listed=false;
- for(const x of['txt','csv']){const i=k.indexOf(x);if(i<0)continue;const t=await fl[i].text();
-  if(x==='txt'){S.base=parseRules(t);S.rules=S.csv.concat(S.base);toast('Version list loaded ('+S.base.length+' entries).');if(S.a){recompute();render()}}
-  else{useCsv(t,'CSV list loaded');try{localStorage.setItem('ksCsv',t)}catch(e){}}
-  fl=fl.filter((_,j)=>j!==i);k.splice(i,1);listed=true}
- if(listed&&!fl.length)return;
+ const fl0=[...list];if(!fl0.length)return;toast('');
+ const k0=await Promise.all(fl0.map(kind)),fl=[],k=[],mods=[];
+ for(let j=0;j<fl0.length;j++){const x=k0[j];
+  if(x==='txt'){const t=await fl0[j].text();S.base=parseRules(t);S.rules=S.csv.concat(S.base);toast('Version list loaded ('+S.base.length+' entries).');if(S.a){recompute();render()}}
+  else if(x==='csv'){useCsv(await fl0[j].text(),'CSV list loaded');try{localStorage.setItem('ksCsv',await fl0[j].text())}catch(e){}}
+  else if(x==='hunk')mods.push(fl0[j]);
+  else{fl.push(fl0[j]);k.push(x)}}
+ if(mods.length&&!fl.length)return addModules(mods);
+ if(mods.length)toast('Module files were ignored — add them separately, after loading a ROM.');
+ if(!fl.length)return;
  if(fl.length>2)return toast('Drop one .rom file, or one or two .bin files.');
  if(k.includes(''))return toast('Only .rom and .bin files can be used.');
  if(fl.some(f=>!f.size||f.size>4194304))return toast('That file is empty or too large to be a Kickstart image.');
- if(k.includes('rom')){if(fl.length!==1)return toast('A .rom must be dropped on its own — one .rom, or one or two .bin files.');return put('rom',[await rd(fl[0])])}
+ const nr=k.filter(x=>x==='rom').length;
+ if(nr===2)return put('rom2',await Promise.all(fl.map(rd)));
+ if(nr){if(fl.length!==1)return toast('Drop one .rom file, a CD32 Kickstart + Extended pair of .rom files, or one or two .bin files.');return put('rom',[await rd(fl[0])])}
  const d=await Promise.all(fl.map(rd));
  if(d.some(x=>x.d.length%2))return toast('A .bin file with an odd size can’t be a byte-swapped image.');
  if(d.length===2){if(d[0].d.length!==d[1].d.length)return toast('The two .bin files must be exactly the same size.');return put('bin',d)}
- if(S.mode==='bin'&&S.f.length===1&&S.f[0].n!==d[0].n){
+ if((S.mode==='bin')&&S.f.length===1&&S.f[0].n!==d[0].n&&S.a&&!S.a.hdr){
   if(S.f[0].d.length!==d[0].d.length)return toast('The two .bin files must be exactly the same size.');return put('bin',[S.f[0],d[0]])}
  put('bin',d)}
 const z=$('#drop');
@@ -368,9 +561,6 @@ $('#pick').onchange=e=>{load(e.target.files);e.target.value=''};
 addEventListener('dragover',e=>{e.preventDefault();z.classList.add('hot')});
 addEventListener('dragleave',e=>{if(!e.relatedTarget)z.classList.remove('hot')});
 addEventListener('drop',e=>{e.preventDefault();z.classList.remove('hot');load(e.dataTransfer.files)});
-$('#flip').onclick=()=>{S.flip=!S.flip;recompute();render()};
-
-// ---- output ----
 function crc32(b){const t=crc32.t||(crc32.t=Array.from({length:256},(_,n)=>{let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;return c>>>0}));
  let r=-1;for(let i=0;i<b.length;i++)r=t[(r^b[i])&255]^(r>>>8);return(r^-1)>>>0}
 function zip(F){ // uncompressed ("stored") zip
@@ -388,123 +578,8 @@ async function save(F,st){
   catch(e){if(e.code!=='declined')toast('Couldn’t save: '+(e.message||e.code))}}
  else for(const f of F){const u=URL.createObjectURL(new Blob([f.data])),a=document.createElement('a');a.href=u;a.download=f.name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000)}}
 const stem=n=>n.replace(/\.[^.]*$/,'');
-function out(kind){
- const a=S.a;if(!a)return;const fx=d=>rep(d,+$('#sz').value),F=[];let st;
- if(kind==='rom'){st=stem((S.hi||S.f[0]).n);if(S.f.length===2)st=st.replace(/[_-](hi|lo|high|low)$/i,'');F.push({name:st+'.rom',data:a.rom})}
- else{st=stem(S.f[0].n);
-  if(kind==='bin')F.push({name:st+'.bin',data:fx(swap(a.rom))});
-  else{if(a.rom.length%4)return toast('The image size must be a multiple of 4 bytes to split it.');
-   const[h,l]=split(a.rom);F.push({name:st+'_hi.bin',data:fx(h)},{name:st+'_lo.bin',data:fx(l)})}}
- save(F,st)}
-$('#b1').onclick=()=>out('bin');$('#b2').onclick=()=>out('split');$('#b3').onclick=()=>out('rom');
 const useCsv=(t,m)=>{S.csv=csvRules(t);S.rules=S.csv.concat(S.base);if(S.a){recompute();render()}toast(m+' ('+S.csv.length+' entries).')};
 // A known-kickstarts.csv next to this page loads automatically when it is served over http; otherwise drop the CSV on the page (it is then remembered in this browser).
 fetch('known-kickstarts.csv').then(r=>r.ok?r.text():Promise.reject()).then(t=>useCsv(t,'Loaded known-kickstarts.csv')).catch(()=>{try{const t=localStorage.getItem('ksCsv');if(t)useCsv(t,'Loaded your saved CSV list')}catch(e){}});
-// ---- 1MB build: a second 512 KB bank at $E00000, scanned thanks to a patched exec scantable ----
-const BASE=0xF80000,XB=0xE00000,BANK=524288;
-const u32=(r,o)=>((r[o]<<24|r[o+1]<<16|r[o+2]<<8|r[o+3])>>>0);
-const p32=(r,o,v)=>{r[o]=v>>>24&255;r[o+1]=v>>>16&255;r[o+2]=v>>>8&255;r[o+3]=v&255};
-const cstr=(r,b,p)=>{const f=p-b;if(!p||f<0||f>=r.length)return null;let s='';for(let i=f;i<r.length&&s.length<120;i++){const c=r[i];if(c<32||(c>=127&&c<160))break;s+=String.fromCharCode(c)}return s.trim()};
-function scan2(r,base=BASE){ // resident tags with their end (EndSkip) and the start of the module body (= end of the previous module)
- const o=[];
- for(let i=0;i+26<=r.length;i+=2){
-  if(r[i]!==0x4A||r[i+1]!==0xFC||u32(r,i+2)!==base+i)continue;
-  const n=cstr(r,base,u32(r,i+14));if(!n)continue;
-  const end=u32(r,i+6)-base;if(end<i+26||end>r.length)continue;
-  o.push({off:i,end,type:r[i+12],pri:r[i+13]<<24>>24,name:n,id:cstr(r,base,u32(r,i+18))||''})}
- let prev=0;for(const m of o){m.start=m.off-prev>=0&&m.off-prev<=0x400?prev:m.off;prev=m.end}
- return o}
-const absOp=w=>w===0x4EB9||w===0x4EF9||w===0x4879||(w&0xF1FF)===0x41F9||(w&0xC1FF)===0x203C; // JSR/JMP/PEA/LEA abs.l, MOVE.L #imm
-function extract(rom,m){ // module body, its absolute pointers into itself (to be rebased), and calls to fixed addresses elsewhere in the ROM
- const body=rom.slice(m.start,m.end),lo=BASE+m.start,hi=BASE+m.end,tag=m.off-m.start,rel=[],outw=[];
- for(let o=0;o+4<=body.length;o+=2){
-  const v=u32(body,o);
-  if(v>=lo&&v<=hi){let k='uncertain';
-   if(o===tag+2||o===tag+6||o===tag+14||o===tag+18||o===tag+22)k='romtag';
-   else if(o>=2&&absOp(body[o-2]<<8|body[o-1]))k='opcode';
-   else if((lo+o)%4===0)k='aligned';
-   rel.push([o,k])}
-  else if(v>=BASE&&v<0x1000000&&o>=2&&absOp(body[o-2]<<8|body[o-1]))outw.push(o)}
- return{body,rel,outw}}
-function patchScan(main){ // Hyperion scantable F80000,<exec end> F80000,1000000 F00000,F80000 -> F80000,1000000 E00000,E80000 F00000,F80000
- const ex=scan2(main).find(m=>m.name==='exec.library');if(!ex)throw new Error('exec.library not found');
- const old=[BASE,BASE+ex.end,BASE,0x1000000,0xF00000,0xF80000,0xFFFFFFFF],nw=[BASE,0x1000000,XB,XB+BANK,0xF00000,0xF80000,0xFFFFFFFF],hits=[];
- for(let i=0;i+28<=main.length;i+=2){let ok=true;for(let j=0;j<7;j++)if(u32(main,i+j*4)!==old[j]){ok=false;break}if(ok)hits.push(i)}
- if(hits.length!==1)throw new Error('the exec scantable of this ROM was not found ('+hits.length+' matches)');
- const r=main.slice();nw.forEach((v,j)=>p32(r,hits[0]+j*4,v));return{rom:r,at:hits[0]}}
-function fixSum(b){const r=b.slice(),n=r.length;p32(r,n-24,0);let s=0;for(let i=0;i<n;i+=4){s+=u32(r,i);if(s>0xFFFFFFFF)s=s-0x100000000+1}p32(r,n-24,(~s)>>>0);return r}
-function pairs(mm,dm){ // modules present in both ROMs (same name; same ID-string prefix when a name occurs more than once)
- const k=m=>m.name+'|'+m.id.split(' ')[0],cnt=(L,n)=>L.filter(m=>m.name===n).length,out=[];
- for(const t of mm){let d=dm.find(m=>k(m)===k(t));if(!d&&cnt(mm,t.name)===1&&cnt(dm,t.name)===1)d=dm.find(m=>m.name===t.name);if(d)out.push({name:t.name,t,d})}
- return out}
-function buildBig(main,donor,offs){
- const pt=patchScan(main),mr=pt.rom,mm=scan2(main),ps=donor?pairs(mm,scan2(donor)):[],ext=new Uint8Array(BANK).fill(255),lim=BANK-24,rep=[];let cur=0;
- for(const off of offs){
-  const p=ps.find(q=>q.t.off===off);if(!p)throw new Error('module not found in the donor ROM');
-  const old=p.t,nw=p.d,x=extract(donor,nw);
-  if(x.outw.length)throw new Error(p.name+' calls fixed addresses elsewhere in its own ROM, so it can’t be moved');
-  while(cur%4!==nw.start%4)cur++;
-  if(cur+x.body.length>lim)throw new Error('The extension bank is full — deselect a module.');
-  const delta=XB+cur-(BASE+nw.start);
-  for(const[o]of x.rel)p32(x.body,o,(u32(x.body,o)+delta)>>>0);
-  x.body[nw.off-nw.start+13]=old.pri&255; // keep the replaced module's priority
-  ext.set(x.body,cur);mr[old.off]=0;mr[old.off+1]=0; // switch the old module off
-  rep.push({name:p.name,old,nw,at:XB+cur,unc:x.rel.filter(q=>q[1]==='uncertain').length});cur+=x.body.length}
- p32(ext,BANK-20,BANK);for(let i=0;i<8;i++){ext[BANK-16+i*2]=0;ext[BANK-15+i*2]=0x18+i}
- return{main:fixSum(mr),ext:fixSum(ext),rep,used:cur,at:pt.at}}
-let B={for:null,tm:null,donor:null,rows:[],sel:new Set(),res:null,err:'',elig:''};
-function bigElig(){
- const a=S.a;if(!a)return'Load a Kickstart ROM or BIN image first.';
- if(!a.hdr)return'This doesn’t look like a Kickstart image.';
- if(a.ext)return'This is a CDTV Extended ROM, not a Kickstart.';
- if(a.rom.length!==KB)return'Only 512 KB Kickstart images are supported ('+kb(a.rom.length)+' loaded).';
- if(!a.cs.ok)return'The checksum of this ROM isn’t valid, so it isn’t safe to build on.';
- const pl=plat(a).m||'';if(/A3000|A4000|CD32/.test(pl))return pl.replace(' (inferred)','')+' ROMs need extra hardware (ROMY) for 1MB — this is limited to the A500+, A600 and A1200.';
- try{patchScan(a.rom)}catch(e){return'Not supported yet: '+e.message+'. Only Hyperion Kickstarts (3.1.4, 3.2) are supported so far, not 2.05 or 3.1.'}
- return''}
-function bigBuild(){B.res=null;B.err='';if(B.elig||!S.a)return;try{B.res=buildBig(S.a.rom,B.donor&&B.donor.rom,[...B.sel])}catch(e){B.err=e.message}}
-const vr=s=>{const m=/(\d+)\.(\d+)/.exec(s);return m?[+m[1],+m[2]]:[0,0]},vcmp=(a,b)=>{const x=vr(a),y=vr(b);return y[0]-x[0]||y[1]-x[1]};
-function bigView(){
- const a=S.a;
- if(B.for!==a){B.for=a;B.sel=new Set();B.elig=bigElig();B.tm=B.elig?null:scan2(a.rom)}
- B.rows=!B.elig&&B.donor?pairs(B.tm,B.donor.mods):[];
- bigBuild();
- $('#bgm').textContent=B.elig||B.err;$('#bgm').hidden=!(B.elig||B.err);
- $('#bgd').textContent=B.donor?B.donor.n+' · '+B.donor.mods.length+' modules'+(B.donor.exec?' · '+B.donor.exec:''):'No donor ROM chosen';
- const t=$('#brows');t.textContent='';
- for(const p of B.rows){
-  const x=p.d.x||(p.d.x=extract(B.donor.rom,p.d)),bad=x.outw.length>0,unc=x.rel.filter(q=>q[1]==='uncertain').length,tr=document.createElement('tr'),c=document.createElement('td'),cb=document.createElement('input');
-  cb.type='checkbox';cb.checked=B.sel.has(p.t.off);cb.disabled=bad;cb.onchange=()=>{cb.checked?B.sel.add(p.t.off):B.sel.delete(p.t.off);bigView()};c.append(cb);tr.append(c);
-  const td=(v,k)=>{const d=document.createElement('td');d.textContent=v;if(k)d.className=k;tr.append(d)},cv=vcmp(p.t.id,p.d.id);
-  td(p.name,'n');td(p.t.id);td(p.d.id);td(((p.t.end-p.t.start)/1024).toFixed(1)+' → '+((p.d.end-p.d.start)/1024).toFixed(1)+' KB');td(p.t.pri);
-  td(bad?'Calls fixed addresses elsewhere in its own ROM — can’t be moved':(cv>0?'Newer':cv<0?'Older':'Same version')+' · '+x.rel.length+' relocations'+(unc?' ('+unc+' uncertain)':''));
-  t.append(tr)}
- $('#bempty').hidden=B.rows.length>0;$('#bempty').textContent=B.elig?'':B.donor?'No modules in common with the donor ROM.':'Choose a donor ROM to see which modules can be replaced.';
- const r=B.res;
- $('#bgs').textContent=r?(r.rep.length?r.rep.map(q=>q.name+': '+q.old.id+' → '+q.nw.id+' at '+hx(q.at,6)+' (priority '+q.old.pri+' kept)'+(q.unc?' — '+q.unc+' uncertain relocations':'')).join('\n')+'\n':'No modules selected — the extension bank will be empty.\n')+'Extension bank: '+(r.used/1024).toFixed(1)+' KB of 512 KB used. Scantable patched at '+hx(r.at,5)+'; both banks re-checksummed.':'';
- ['#o1','#o2','#o3','#o4'].forEach(i=>$(i).disabled=!r)}
-async function loadDonor(list){
- const fl=[...list];if(!fl.length)return;toast('');
- if(fl.length>2)return toast('Choose one .rom file, or one or two .bin files.');
- const k=await Promise.all(fl.map(kind));
- if(k.some(x=>x!=='rom'&&x!=='bin'))return toast('The donor must be a .rom, or one or two .bin files.');
- const d=await Promise.all(fl.map(rd));let rom;
- if(k.includes('rom')){if(fl.length!==1)return toast('A .rom must be chosen on its own.');rom=d[0].d}
- else if(d.length===2){if(d[0].d.length!==d[1].d.length)return toast('The two .bin files must be exactly the same size.');const A=join(d[0].d,d[1].d),C=join(d[1].d,d[0].d);rom=form(A)==='rom'?A:C}
- else rom=swap(d[0].d);
- rom=trim(rom);
- if(form(rom)!=='rom'||rom.length!==KB)return toast('That doesn’t look like a 512 KB Kickstart image (check the .bin pair, or choose the .rom).');
- const mods=scan2(rom),ex=mods.find(m=>m.name==='exec.library');
- B.donor={n:d.map(x=>x.n).join(' + '),rom,mods,exec:ex?ex.id:''};B.sel=new Set();bigView()}
-$('#pick2').onchange=e=>{loadDonor(e.target.files);e.target.value=''};
-function bigOut(kind){
- if(!B.res)return;const rom=new Uint8Array(2*BANK);rom.set(B.res.main,0);rom.set(B.res.ext,BANK);
- const st=stem((S.hi||S.f[0]).n).replace(/[_-](hi|lo|high|low)$/i,'')+'_1mb',F=[];
- if(kind==='rom')F.push({name:st+'.rom',data:rom});
- else if(kind==='bin')F.push({name:st+'.bin',data:swap(rom)});
- else if(kind==='hl'){const[h,l]=split(rom);F.push({name:st+'_hi.bin',data:h},{name:st+'_lo.bin',data:l})}
- else F.push({name:st+'_ext.rom',data:B.res.ext});
- save(F,st)}
-$('#o1').onclick=()=>bigOut('rom');$('#o2').onclick=()=>bigOut('bin');$('#o3').onclick=()=>bigOut('hl');$('#o4').onclick=()=>bigOut('ext');
 render();
 </script></body></html>
