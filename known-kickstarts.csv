@@ -1,25 +1,14 @@
 ﻿Name,Version,Platform,Bus width,Size (KB),SHA-1,Checksum (stored longword),Source / notes
-Kickstart 1.1 (NTSC),v31.34,A1000,16,,,,"From the app version list (written from memory, no hash, unverified)"
-Kickstart 1.1 (PAL),v32.34,A1000,16,,,,"From the app version list (written from memory, no hash, unverified)"
-Kickstart 1.2,v33.166,A1000,16,,,,"From the app version list (written from memory, no hash, unverified)"
-Kickstart 1.2,v33.180,"A500, A1000, A2000",16,,11f9e62cf299f72184835b7b2a70a16333fc0d88,,SHA-1 from FS-UAE docs (fs-uae.net/docs/kickstart-roms); version/platform as listed there
-Kickstart 1.3,v34.5,"A500, A1000, A2000, CDTV",16,,891e9a547772fe0c6c19b610baf8bc4ea7fcb785,,SHA-1 from FS-UAE docs (fs-uae.net/docs/kickstart-roms); version/platform as listed there
-Kickstart 2.02,v36.207,A3000,32,,,,"From the app version list (written from memory, no hash, unverified)"
-Kickstart 1.4 / 2.0 beta (any 36.x revision),v36.*,A3000,32,,,,"From the app version list (written from memory, no hash, unverified)"
-Kickstart 2.04,v37.175,A500+,16,,c5839f5cb98a7a8947065c3ed2f14f5f42e334a1,,"SHA-1 from FS-UAE docs (fs-uae.net/docs/kickstart-roms); version/platform as listed there; app list also gives A2000, A3000 for this version (unverified)"
-Kickstart 2.05,v37.299,A600,16,,,,"From the app version list (written from memory, no hash, unverified)"
-Kickstart 2.05,v37.300,A600,16,,,,"From the app version list (written from memory, no hash, unverified)"
-Kickstart 2.05,v37.350,A600,16,,02843c4253bbd29aba535b0aa3bd9a85034ecde4,,SHA-1 from FS-UAE docs (fs-uae.net/docs/kickstart-roms); version/platform as listed there
-Kickstart 3.0,v39.106,,,,,,"From the app version list (written from memory, no hash, unverified)"
+Kickstart 1.2,v33.180,"A500, A1000, A2000",16,256,11f9e62cf299f72184835b7b2a70a16333fc0d88,,SHA-1 from FS-UAE docs (fs-uae.net/docs/kickstart-roms); version/platform as listed there
+Kickstart 1.3,v34.5,"A500, A1000, A2000, CDTV",16,256,891e9a547772fe0c6c19b610baf8bc4ea7fcb785,,SHA-1 from FS-UAE docs (fs-uae.net/docs/kickstart-roms); version/platform as listed there
+Kickstart 2.04,v37.175,A500+,16,512,c5839f5cb98a7a8947065c3ed2f14f5f42e334a1,,"SHA-1 from FS-UAE docs (fs-uae.net/docs/kickstart-roms); version/platform as listed there; app list also gives A2000, A3000 for this version (unverified)"
+Kickstart 2.05,v37.350,A600,16,512,02843c4253bbd29aba535b0aa3bd9a85034ecde4,,SHA-1 from FS-UAE docs (fs-uae.net/docs/kickstart-roms); version/platform as listed there
 Kickstart 3.1,v40.60,CD32,32,512,3525be8887f79b5929e017b42380a79edfee542d,$8F4549A5,"SHA-1 from FS-UAE docs, matched by a user-supplied file (Kickstart-v3.1-rev40.60-1993-Commodore-CD32.rom); size/checksum calculated from that file. The CD32 also has a separate 512 KB Extended ROM (see CD32 Extended ROM row)"
-Kickstart 3.1,v40.63,"A500, A600, A2000",16,,,,"From the app version list (written from memory, no hash, unverified)"
-Kickstart 3.1,v40.68,A1200,32,,e21545723fe8374e91342617604f1b3d703094f1,,SHA-1 from FS-UAE docs (fs-uae.net/docs/kickstart-roms); version/platform as listed there; A1200 hash also in the kick2f readme (Aminet)
-Kickstart 3.1,v40.68,A3000,32,,f8e210d72b4c4853e0c9b85d223ba20e3d1b36ee,,SHA-1 from FS-UAE docs (fs-uae.net/docs/kickstart-roms); version/platform as listed there
-Kickstart 3.1,v40.68,A4000,32,,5fe04842d04a489720f0f4bb0e46948199406f49,,SHA-1 from FS-UAE docs (fs-uae.net/docs/kickstart-roms); version/platform as listed there
-Kickstart 3.1,v40.70,A4000T,32,,,,"From the app version list (written from memory, no hash, unverified)"
+Kickstart 3.1,v40.68,A1200,32,512,e21545723fe8374e91342617604f1b3d703094f1,,SHA-1 from FS-UAE docs (fs-uae.net/docs/kickstart-roms); version/platform as listed there; A1200 hash also in the kick2f readme (Aminet)
+Kickstart 3.1,v40.68,A3000,32,512,f8e210d72b4c4853e0c9b85d223ba20e3d1b36ee,,SHA-1 from FS-UAE docs (fs-uae.net/docs/kickstart-roms); version/platform as listed there
+Kickstart 3.1,v40.68,A4000,32,512,5fe04842d04a489720f0f4bb0e46948199406f49,,SHA-1 from FS-UAE docs (fs-uae.net/docs/kickstart-roms); version/platform as listed there
 Kickstart 3.2 (Hyperion),v47.96,A1200,32,512,5b2982876fec2166673be447643881262c84090e,$E3B7D1D5,User-supplied reference file; SHA-1/checksum/size calculated from the file (kicka1200.rom)
 Kickstart 3.2 (Hyperion),v47.96,"A500, A600, A1000, A2000, CDTV",16,512,b88e364daf23c9c9920e548b0d3d944e65b1031d,$035D98F3,User-supplied reference file; SHA-1/checksum/size calculated from the file (kickCDTVa1000a500a2000a600.rom)
-"Kickstart 3.2 (Hyperion), any other revision",v47.*,,,,,,"From the app version list (written from memory, no hash, unverified)"
 CDTV Extended ROM v1.0,(header has no version); cdtv.device 35.9; exec 34.1001,CDTV,,256,7ba40ffa17e500ed9fed041f3424bd81d9c907be,n/a (not used by this ROM),SHA-1 from FS-UAE docs; user-supplied file used for size and details
 CDTV Extended ROM v2.30,2.30 (header); cdtv.device 35.14; exec 37.201,CDTV,,256,ed7e461d1fff3cda321631ae42b80e3cd4fa5ebb,$94FEF2C2,User-supplied reference file; SHA-1/checksum/size calculated from the file
 CDTV Extended ROM v2.7,37.999 (header); cdtv.device 35.12; exec 37.201,CDTV,,256,5bc114bba29f60a614a311745b3e2464bfa06846,n/a (not used by this ROM),User-supplied reference file; SHA-1/checksum/size calculated from the file
@@ -35,8 +24,4 @@ Kickstart 1.3,v34.5,"A500, A1000, A2000, CDTV",16,256,c39bd9094d4e5f4e28c1411f30
 Kickstart 1.3,v34.5,"A500, A1000, A2000, CDTV",16,512,099e9e10dace735ef5aa87bc006f258e3ce9addd,$150B7DB3,"Auto-added from Kickstart v1.3 rev 34.5 (1987)(Commodore)(A3000)[o].rom; exec 34.2 (28 Oct 1987); linked at $FC0000; 25 modules; Copyright (C) 1985, Commodore-Amiga, Inc. All Rights Reserved."
 Kickstart 1.3,v34.5,"A500, A1000, A2000, CDTV",16,512,90933936cce43ca9bc6bf375662c076b27e3c458,$15267DB3,"Auto-added from Kickstart v1.3 rev 34.5 (1987)(Commodore)(A500-A1000-A2000-CDTV)[o].rom; exec 34.2 (28 Oct 1987); linked at $FC0000; 25 modules; Copyright (C) 1985, Commodore-Amiga, Inc. All Rights Reserved."
 Kickstart 1.4 / 2.0 beta (any 36.x revision),v36.2,A3000,32,512,679ae45e0ff98506dfb55394b2da559d88cab767,$72B1EEFB,"Auto-added from Kickstart 1.4 (36.02.20) (A3000) Alpha Release 18 (Commodore) (1989).rom; exec 36.59 (22 Dec 1989); linked at $200000; 38 modules; Copyright 1985,1986,1987,1988,1989 Commodore-Amiga, Inc. All Rights Reserved."
-Kickstart,v65535.65535,,,256,4192c505d130f446b2ada6bdc91dae730acafb4c,$3A284FF8,"Auto-added from Kickstart v1.1 rev 31.34 (1985)(Commodore)(A1000)(NTSC).rom; exec 31.34 (23 Nov 1985); linked at $FC0000; 23 modules; Copyright (C) 1985, Commodore-Amiga, Inc. All Rights Reserved. exec 31.34 (23 Nov 1985)"
-Kickstart,v65535.65535,,,256,16df8b5fd524c5a1c7584b2457ac15aff9e3ad6d,$CA71F279,"Auto-added from Kickstart v1.1 rev 32.34 (1986)(Commodore)(A1000)(PAL).rom; exec 31.34 (23 Nov 1985); linked at $FC0000; 23 modules; Copyright (C) 1985, Commodore-Amiga, Inc. All Rights Reserved. exec 31.34 (23 Nov 1985)"
-Kickstart,v65535.65535,,,512,08c702b45017641cf7bb2d23334509c2f7dd35d3,$3A284FF8,"Auto-added from Kickstart v1.1 rev 31.34 (1985)(Commodore)(A1000)(NTSC)[o].rom; exec 31.34 (23 Nov 1985); linked at $FC0000; 23 modules; Copyright (C) 1985, Commodore-Amiga, Inc. All Rights Reserved. exec 31.34 (23 Nov 1985)"
-Kickstart,v65535.65535,,,512,e1d062ae209ad0257e1b743718d210b1c83d8035,$CA71F279,"Auto-added from Kickstart v1.1 rev 32.34 (1986)(Commodore)(A1000)(PAL)[o].rom; exec 31.34 (23 Nov 1985); linked at $FC0000; 23 modules; Copyright (C) 1985, Commodore-Amiga, Inc. All Rights Reserved. exec 31.34 (23 Nov 1985)"
 Kickstart 2.04,v37.175,A3000 / A3000T,32,512,d82ebb59afc53540ddf2d7187ecf239b7ea91590,$54876DAB,"Auto-added from Kickstart v2.04 rev 37.175 (1991)(Commodore)(A3000).rom; platform inferred from modules; exec 37.132 (23.5.91); 42 modules; Copyright 1985,1986,1987,1988,1989,1990,1991 Commodore-Amiga, Inc. All Rights Reserved."
