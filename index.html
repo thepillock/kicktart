@@ -131,26 +131,61 @@ body:not(.admin) [data-t=kn],body:not(.admin) #kn{display:none!important}
 </div>
 <script>
 const LIST=`# match | name | machines | bus width.  match = sha1:<hash>, ver:<ver>.<rev|*> or text:<string>. First match wins.
-# Known-good SHA-1 hashes: FS-UAE docs (fs-uae.net/docs/kickstart-roms), A1200 3.1 also in the kick2f readme.
-sha1:891e9a547772fe0c6c19b610baf8bc4ea7fcb785|Kickstart 1.3 r34.5|A500, A1000, A2000, CDTV|16
-sha1:11f9e62cf299f72184835b7b2a70a16333fc0d88|Kickstart 1.2 r33.180|A500, A1000, A2000|16
-sha1:c5839f5cb98a7a8947065c3ed2f14f5f42e334a1|Kickstart 2.04 r37.175|A500+|16
-sha1:02843c4253bbd29aba535b0aa3bd9a85034ecde4|Kickstart 2.05 r37.350|A600|16
-sha1:e21545723fe8374e91342617604f1b3d703094f1|Kickstart 3.1 r40.68|A1200|32
-sha1:f8e210d72b4c4853e0c9b85d223ba20e3d1b36ee|Kickstart 3.1 r40.68|A3000|32
-sha1:5fe04842d04a489720f0f4bb0e46948199406f49|Kickstart 3.1 r40.68|A4000|32
-sha1:3525be8887f79b5929e017b42380a79edfee542d|Kickstart 3.1 r40.60|CD32|32
-sha1:5bef3d628ce59cc02a66e6e4ae0da48f60e78f7f|CD32 Extended ROM|CD32
-# Supplied by the user as reference files (valid checksums, version 47.96):
-sha1:5b2982876fec2166673be447643881262c84090e|Kickstart 3.2 r47.96|A1200|32
-sha1:b88e364daf23c9c9920e548b0d3d944e65b1031d|Kickstart 3.2 r47.96|A500, A600, A1000, A2000, CDTV|16
-sha1:8a2405087ce182225656dd0b93069c45743f9e34|Kickstart 3.1.4 r46.143|A600|16
-sha1:3b7f1493b27e212830f989f26ca76c02049f09ca|Kickstart 3.1 r40.63|A500, A600, A2000|16
-sha1:9631ec3bcc6bbbd727d774f85b6525a2fa3d82bc|Kickstart 3.1 r40.68|A600|16
-# CDTV Extended ROMs (256 KB). The v1.0 hash is also in the FS-UAE docs; the v2.30 and v2.7 hashes come from user-supplied files.
-sha1:7ba40ffa17e500ed9fed041f3424bd81d9c907be|CDTV Extended ROM v1.0|CDTV
-sha1:ed7e461d1fff3cda321631ae42b80e3cd4fa5ebb|CDTV Extended ROM v2.30|CDTV
-sha1:5bc114bba29f60a614a311745b3e2464bfa06846|CDTV Extended ROM v2.7|CDTV
+# SHA-1 entries below are generated from known-kickstarts.csv; the ver:/text: fallbacks follow.
+sha1:11f9e62cf299f72184835b7b2a70a16333fc0d88|Kickstart 1.2|A500, A1000, A2000|16
+sha1:891e9a547772fe0c6c19b610baf8bc4ea7fcb785|Kickstart 1.3|A500, A1000, A2000, CDTV|16
+sha1:c5839f5cb98a7a8947065c3ed2f14f5f42e334a1|Kickstart 2.04|A500+|16
+sha1:02843c4253bbd29aba535b0aa3bd9a85034ecde4|Kickstart 2.05|A600|16
+sha1:3525be8887f79b5929e017b42380a79edfee542d|Kickstart 3.1|CD32|32
+sha1:e21545723fe8374e91342617604f1b3d703094f1|Kickstart 3.1|A1200|32
+sha1:f8e210d72b4c4853e0c9b85d223ba20e3d1b36ee|Kickstart 3.1|A3000|32
+sha1:5fe04842d04a489720f0f4bb0e46948199406f49|Kickstart 3.1|A4000|32
+sha1:5b2982876fec2166673be447643881262c84090e|Kickstart 3.2|A1200|32
+sha1:b88e364daf23c9c9920e548b0d3d944e65b1031d|Kickstart 3.2|A500, A600, A1000, A2000, CDTV|16
+sha1:7ba40ffa17e500ed9fed041f3424bd81d9c907be|CDTV Extended ROM v1.0|CDTV|
+sha1:ed7e461d1fff3cda321631ae42b80e3cd4fa5ebb|CDTV Extended ROM v2.30|CDTV|
+sha1:5bc114bba29f60a614a311745b3e2464bfa06846|CDTV Extended ROM v2.7|CDTV|
+sha1:8a2405087ce182225656dd0b93069c45743f9e34|Kickstart 3.1.4|A600|16
+sha1:5bef3d628ce59cc02a66e6e4ae0da48f60e78f7f|CD32 Extended ROM|CD32|
+sha1:3b7f1493b27e212830f989f26ca76c02049f09ca|Kickstart 3.1|A500, A600, A2000|16
+sha1:9631ec3bcc6bbbd727d774f85b6525a2fa3d82bc|Kickstart 3.1|A600|16
+sha1:b384371161344a6a18939f920c1345fe7414ceb6|Kickstart 3.1|A4000|32
+sha1:6a7bfb5dbd6b8f179f03da84d8d9528267b6273b|Kickstart 1.2|A1000|16
+sha1:afcf89ba9888657703055750287834c042be9287|Kickstart 1.2|A500, A1000, A2000|16
+sha1:6902fb49ce5bc73fc69591201b3534d3f778384e|Kickstart 1.2|A500, A1000, A2000|16
+sha1:c39bd9094d4e5f4e28c1411f3086950406062e87|Kickstart 1.3|A500, A1000, A2000, CDTV|16
+sha1:099e9e10dace735ef5aa87bc006f258e3ce9addd|Kickstart 1.3|A500, A1000, A2000, CDTV|16
+sha1:90933936cce43ca9bc6bf375662c076b27e3c458|Kickstart 1.3|A500, A1000, A2000, CDTV|16
+sha1:679ae45e0ff98506dfb55394b2da559d88cab767|Kickstart 1.4 / 2.0 beta (any 36.x revision)|A3000|32
+sha1:d82ebb59afc53540ddf2d7187ecf239b7ea91590|Kickstart 2.04|A3000 / A3000T|32
+sha1:4192c505d130f446b2ada6bdc91dae730acafb4c|Kickstart 1.1|A1000|16
+sha1:16df8b5fd524c5a1c7584b2457ac15aff9e3ad6d|Kickstart 1.1|A1000|16
+sha1:f72d89148dac39c696e30b10859ebc859226637b|Kickstart 2.05|A600|16
+sha1:87508de834dc7eb47359cede72d2e3c8a2e5d8db|Kickstart 2.05|A600|16
+sha1:4558b337db169b6e39251910cbce34bbc782e9ab|Kickstart 3.1|A3000 / A3000T|32
+sha1:7bc0e75622d7254e11ea708e5d149007866c93ab|Kickstart 3.2|A3000 / A3000T|32
+sha1:ede1748eb2cbb1e86ac5bf7dc9b97246a4a54358|Kickstart 3.2|A4000T|32
+sha1:37a8aa0b83782d75ce0b4a80631ff3459e91dc63|Kickstart 3.2|A4000|32
+sha1:aab44cd651e6b6f81a3effd8e0ba6b37ab322f32|Kickstart 3.1.4|A4000|32
+sha1:0984fc0df07dc0585db0923d580629f70fca420d|Kickstart 3.2.1|A1200|32
+sha1:eb93508f0bb0cde81d88bf22d05045565d66ef74|Kickstart 3.2.1|A3000 / A3000T|32
+sha1:7db3c3226acc0bfe548c788cf1bc7c4c8774d66f|Kickstart 3.2.1|A4000|32
+sha1:a75fcd349680cedeab06e496c6338394e81788d7|Kickstart 3.2.1|A4000T|32
+sha1:8f64ada68a7f128ba782e8dc9fa583344171590a|Kickstart 3.2.1|A500 / A600 / A1000 / A2000 / CDTV|16
+sha1:d9622547d84741b52c5472607f9aca75565cbba3|Kickstart 3.2.2|A1200|32
+sha1:443d98369aca3ba51ab2d4789d14fa9a26379c0b|Kickstart 3.2.2|A3000 / A3000T|32
+sha1:a3207bd5b5a3ca629010f3159ac793040fa813ef|Kickstart 3.2.2|A4000|32
+sha1:8e3fff2675cc1b97b4f072b63fd4de7093f7c627|Kickstart 3.2.2|A4000T|32
+sha1:7d5ebe686b69d59a863cc77a36b2cd60359a9ed2|Kickstart 3.2.2|A500 / A600 / A1000 / A2000 / CDTV|16
+sha1:3f48ef0eca607855d7872796ba886d7889451fad|Kickstart 3.2.3|A1200|32
+sha1:81902f41cbf6fc6b7d18c691a4ada6245d174bde|Kickstart 3.2.3|A4000|32
+sha1:8eeb6c2b282e589bd1589ebba3a78a41722499ec|Kickstart 3.2.3|A4000T|32
+sha1:a9d51491d4b1356673621b61f789aed979bd01be|Kickstart 3.2.3|A500 / A600 / A1000 / A2000 / CDTV|16
+sha1:039536fa2087a031d41b6735fdc3eba464d1bfa2|Kickstart 3.1|A4000|32
+sha1:a268617888b2c8ffb10db85ea9b92d1129a0cd24|Kickstart 3.1|A3000 / A3000T|32
+sha1:a5a1a7dc832b7a238c236ad9d2b398edd8a831d7|Kickstart 3.1|A4000T|32
+sha1:71806153213c9cf6bafedcc1bd5735e73b9e690d|Kickstart 3.1|A1200|32
+sha1:08ad97eea88ad621bd4dfdbf3d8259fb187ab1dc|CDTV Extended ROM v2.35|CDTV|
 text:cdtv 35.9 (15.3.91)|CDTV Extended ROM v1.0|CDTV
 text:cdtv 35.14 (29.2.92)|CDTV Extended ROM v2.30|CDTV
 text:cdtv 35.12 (28.1.92)|CDTV Extended ROM v2.7|CDTV
