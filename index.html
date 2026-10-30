@@ -54,28 +54,27 @@ button.primary{background:var(--acc);border-color:var(--acc);color:#fff}button.p
 .xpad{padding:14px}.xpad p{margin:0 0 10px;color:var(--mut);font-size:12.5px}.xrow{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 #xrows tr{cursor:default}#xs{font-size:12.5px;margin-top:10px;color:var(--mut)}
 td button{padding:3px 9px;font-size:12px}
-#newrow .row2{display:flex;gap:8px;flex-wrap:wrap}#newrow{margin-top:10px;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+#sh{cursor:pointer}#zf{margin-top:6px;font-size:11.5px;color:var(--mut);font-family:ui-monospace,Consolas,monospace;white-space:pre-line;overflow-wrap:anywhere;max-width:100%}
+.badge.new{background:var(--acc);margin-left:0;margin-right:6px}
+#kn .kbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--line)}#kn .kbar span{color:var(--mut);font-size:12.5px}#krows tr{cursor:default}#krows td{max-width:240px;overflow:hidden;text-overflow:ellipsis}#krows td.s{font-family:ui-monospace,Consolas,monospace;font-size:11.5px}
 </style></head><body>
 <div class="wrap">
 <div class="top">
  <label class="card" id="drop" for="pick">
   <svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l5 5h-3v6h-4V8H7l5-5zM5 17h14v3H5z"/></svg>
-  <b id="zt"></b><small id="zs"></small>
+  <b id="zt"></b><small id="zs"></small><div id="zf"></div>
  </label>
  <div class="card">
   <dl>
    <dt>Version:</dt><dd id="v">-</dd>
    <dt>Release:</dt><dd id="rl">-</dd>
    <dt>Target Platform:</dt><dd id="p">-</dd>
-   <dt>Architecture:</dt><dd id="ar">-</dd>
    <dt>Checksum:</dt><dd id="c">-</dd>
    <dt>SHA-1:</dt><dd id="sh" class="mono" style="font-size:12px">-</dd>
    <dt>Copyright:</dt><dd id="cp">-</dd>
    <dt id="xr" hidden>Extended ROM:</dt><dd id="xrd" class="mono" style="font-size:12px" hidden></dd>
-   <dt>Source File(s):</dt><dd id="s">-</dd>
   </dl>
   <div class="note" id="note"></div>
-  <div id="newrow" hidden><div class="plan" id="newtxt"></div><div class="row2"><button id="newcp">Copy new rows</button><button id="newdl">Download CSV</button></div></div>
  </div>
  <div class="card btns">
   <div class="etabs"><button class="etab on" data-e="rom">Export ROM</button><button class="etab" data-e="bin">Export BIN</button></div>
@@ -98,6 +97,7 @@ td button{padding:3px 9px;font-size:12px}
  <button class="tab on" data-t="mod">Modules</button>
  <button class="tab" data-t="hex">Hex &amp; Header</button>
  <button class="tab" data-t="ext">Replace / Add Modules</button>
+ <button class="tab" data-t="kn">Known Kickstarts</button>
 </div>
 <div class="panel">
  <div id="mod"><div class="scroll"><table>
@@ -110,6 +110,10 @@ td button{padding:3px 9px;font-size:12px}
    <span>Go to $</span><input type="text" id="go" placeholder="000042"><button id="hg">Go</button>
    <span class="mono" id="hr" style="color:var(--mut)"></span></div>
   <pre id="hx">Load a ROM or BIN image to inspect it.</pre>
+ </div>
+ <div id="kn" hidden>
+  <div class="scroll"><table><thead><tr><th>Name</th><th>Version</th><th>Platform</th><th>Bus</th><th>Size</th><th>SHA-1</th><th>Notes</th></tr></thead><tbody id="krows"></tbody></table></div>
+  <div class="kbar"><button id="kdl">Download CSV</button><span id="kinfo"></span></div>
  </div>
  <div id="xp" hidden><div class="xpad">
   <p>Add module files to replace modules in this ROM or add new ones. A replacement with the same name as an existing module overwrites it in place when it fits in the old space, and the ROM keeps its size. Anything that doesn’t fit, and any new module such as icon.library, workbench.library or ehide.device, goes in a second 512 KB area. That makes a 1 MB image: one 27C800 for A500+/A600, or two 27C400 (HI/LO) for the A1200. The second area works on Hyperion Kickstarts (3.1.4, 3.2), 3.1 (40.68) and 2.05 (37.350). On the older ones the scan table has no room to grow, so the scan of $F00000–$F80000 (CDTV-style expansion ROMs) is dropped to make room. Use module files saved from the Modules tab, or Amiga executables that contain a resident tag. Not tested on real hardware — try the result in an emulator first.</p>
@@ -346,7 +350,7 @@ function analyse(rom){
  a.sha=sha1(rom);a.mods=scan(trim(rom));
  const b=a.mods.length?a.mods[0].base:0;
  a.ext=a.mods.some(m=>m.name==='cdtv.device')||b===0xE00000||b===0xF00000; // CDTV / CD32 Extended ROMs
- a.m=S.rules.find(r=>r.sha!==undefined?r.sha===a.sha:r.txt!==undefined?has(rom,r.txt):!a.ext&&a.ver&&a.ver[0]===r.ver&&(r.rev<0||r.rev===a.ver[1]))||null;a.known=!!(a.m&&a.m.sha);
+ a.m=S.rules.find(r=>r.sha!==undefined&&r.sha===a.sha)||S.rules.find(r=>r.sha===undefined&&(r.txt!==undefined?has(rom,r.txt):!a.ext&&a.ver&&a.ver[0]===r.ver&&(r.rev<0||r.rev===a.ver[1])))||null;a.known=!!(a.m&&a.m.sha);
  a.hd=header(rom);a.oth=others(rom,a.hd&&a.hd.cp);return a}
 function sha1(d){
  const n=d.length,L=((n+8>>6)+1)<<6,u=new Uint8Array(L);u.set(d);u[n]=128;
@@ -478,25 +482,24 @@ function render(){
   :S.f.length===1?['.bin loaded','Drop a second .bin if this is one half of a split pair']:['Two .bin files loaded','Drop new files to replace them'];
  $('#zt').textContent=z[0];$('#zs').textContent=z[1];
  const set=(id,t)=>$(id).textContent=t;
- if(!a){['#v','#rl','#p','#ar','#c','#sh','#cp','#s'].forEach(i=>set(i,'-'));$('#note').textContent='';$('#xr').hidden=$('#xrd').hidden=true;S.res=null;S.eligI=S.eligX='';outputs();mods();hex();extView();return}
+ if(!a){['#v','#rl','#p','#c','#sh','#cp'].forEach(i=>set(i,'-'));set('#zf','');$('#note').textContent='';$('#xr').hidden=$('#xrd').hidden=true;S.res=null;S.eligI=S.eligX='';outputs();mods();hex();extView();knownView();return}
  const ex=a.mods.find(m=>m.name==='exec.library'),cd=a.ext&&a.mods.find(m=>m.name==='cdtv.device'),evs=cd?' · '+cd.id:ex&&a.hdr?' · '+ex.id:'';
  set('#v',(a.f==='enc'?'Encrypted ROM':a.m?a.m.name+(a.ver&&!a.ext?' ('+a.ver.join('.')+')':''):a.ext?'Extended ROM (version not in list)':a.ver?'Unrecognised Kickstart '+a.ver.join('.'):'Not a Kickstart image')+evs);
  set('#rl',a.hd&&a.hd.rel||'-');
  set('#cp',a.hd&&a.hd.cp||'-');
  const pl=plat(a);set('#p',pl.m||(a.hdr?'Not listed':'-'));
- set('#ar',a.ext?'Extended ROM; split gives 2 × '+kb(a.rom.length/2)+' images (HI + LO)':pl.bus===32?'32-bit (two 16-bit EPROMs: HI + LO)'+pl.t:pl.bus===16?'16-bit (single EPROM)'+pl.t:'-');
  const c=$('#c');c.textContent='';
  if(a.hdr&&a.ext&&!a.cs.ok){c.append('n/a');const b=document.createElement('span');b.className='badge';b.style.background='var(--mut)';b.textContent='Not used by this ROM';c.append(b);c.title='Not every Extended ROM carries a Kickstart-style checksum, so none is checked.'}
  else if(a.hdr){c.append(hx(a.cs.st,8));const b=document.createElement('span');b.className='badge'+(a.cs.ok?'':' bad');b.textContent=a.cs.ok?'Valid':'Not valid';c.append(b);
   if(!a.cs.ok)c.append(' · sum '+hx(a.cs.sum,8)+' (should be $FFFFFFFF)');
   c.title='Stored checksum longword (end of ROM minus $18). All longwords in a good ROM add up to $FFFFFFFF.'}else c.textContent='-';
- const sh=$('#sh'),bd=document.createElement('span');sh.textContent=a.sha;bd.className='badge'+(a.known?'':' bad');bd.textContent=a.known?'Known good':'Not in known list';sh.append(bd);
- set('#s',S.mode==='bin'&&S.f.length===2?'HI: '+S.hi.n+'\nLO: '+S.lo.n:S.f.map(f=>f.n).join('\n'));
+ const sh=$('#sh'),bd=document.createElement('span');sh.textContent=a.sha;bd.className='badge'+(a.known?'':' bad');bd.textContent=a.known?'Known good':'Not in known list';sh.append(bd);sh.title='Click to copy a CSV line for this ROM';
+ set('#zf',S.mode==='bin'&&S.f.length===2?'HI: '+S.hi.n+'\nLO: '+S.lo.n:S.f.map(f=>f.n).join('\n'));
  const X=S.x;$('#xr').hidden=$('#xrd').hidden=!X;
  if(X){const cs=X.cs.ok?'checksum valid':X.hdr?'checksum not valid':'no header';set('#xrd',(X.m?X.m.name:'Extended ROM')+' · '+kb(X.rom.length)+' · '+cs+' · '+(X.known?'known good':'not in known list')+'\n'+X.sha)}
  $('#note').textContent=[S.note].concat(warns()).filter(Boolean).join('\n');
- noteUnknown(a,S.kf&&S.kf.n);if(S.x)noteUnknown(S.x,S.f[S.f.length-1].n);newView();
- extCompute();outputs();mods();hex();extView()}
+ noteUnknown(a,S.kf&&S.kf.n);if(S.x)noteUnknown(S.x,S.f[S.f.length-1].n);
+ extCompute();outputs();mods();hex();extView();knownView()}
 const verOf=id=>{const m=/(\d+)\.(\d+)/.exec(id);return m?m[1]+'.'+m[2]:''};
 function dlMod(m){const h=toHunk(S.a.rom,m);if(h.err)return toast(h.err);
  const n=(m.name+(verOf(m.id)?'_'+verOf(m.id):'')).replace(/[^\w.-]+/g,'_');save([{name:n,data:h.data}],n);toast('Saved '+n+' ('+h.data.length.toLocaleString('en-US')+' bytes, '+h.rel+' relocations). Add it to another ROM from the Extended ROM tab.')}
@@ -569,7 +572,7 @@ async function addModules(list){
  if(n){render();tab('ext')}}
 $('#pick2').onchange=e=>{addModules(e.target.files);e.target.value=''};
 $('#xkeep').onchange=e=>{S.keepPri=e.target.checked;render()};
-function tab(t){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));$('#mod').hidden=t!=='mod';$('#hex').hidden=t!=='hex';$('#xp').hidden=t!=='ext'}
+function tab(t){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));$('#mod').hidden=t!=='mod';$('#hex').hidden=t!=='hex';$('#xp').hidden=t!=='ext';$('#kn').hidden=t!=='kn'}
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>tab(b.dataset.t));
 const step=d=>{if(!S.a)return;S.off=Math.max(0,Math.min(S.off+d,(S.a.rom.length-1)&~15));hex()};
 $('#hp').onclick=()=>step(-384);$('#hn').onclick=()=>step(384);
@@ -639,39 +642,60 @@ async function save(F,st){
   catch(e){if(e.code!=='declined')toast('Couldn’t save: '+(e.message||e.code))}}
  else for(const f of F){const u=URL.createObjectURL(new Blob([f.data])),a=document.createElement('a');a.href=u;a.download=f.name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000)}}
 const stem=n=>n.replace(/\.[^.]*$/,'');
-// ---- unknown ROMs: prepare a CSV row for each one; the page can't write to disk, so it offers the updated CSV as a download ----
+// ---- known list / unknown ROMs ----
 const COLS=['Name','Version','Platform','Bus width','Size (KB)','SHA-1','Checksum (stored longword)','Source / notes'];
 let PEND=[];try{PEND=JSON.parse(localStorage.getItem('ksNew')||'[]')}catch(e){}
 const csvq=v=>/[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;
-function noteUnknown(a,fname){
- if(!a||!a.hdr||a.known||a.f==='enc'||!a.sha)return;
- if(PEND.some(r=>r[5]===a.sha)||S.csv.some(r=>r.sha===a.sha))return;
+function mkRow(a,fname,pre){ // [name, version, platform, bus, size KB, sha, checksum, notes]
  const pl=plat(a),inf=/inferred/.test(pl.m||''),mach=(pl.m||'').replace(' (inferred)',''),b0=a.mods.length?a.mods[0].base:0;
  const ex=a.mods.find(m=>m.name==='exec.library'),rel=a.hd&&a.hd.rel;
  const name=a.ext?'Extended ROM':a.m&&a.m.name?a.m.name:rel?'Kickstart '+rel.replace(/\s*ROM$/i,''):'Kickstart',ver=a.ver?'v'+a.ver.join('.'):'';
- const notes=['Auto-added from '+(fname||'a loaded file')+(a.cs.ok?'':' (checksum not valid)'),inf?'platform inferred from modules':'',ex?ex.id:'',b0&&b0!==BASE?'linked at '+hx(b0,6):'',a.mods.length+' modules',a.hd&&a.hd.cp||''].filter(Boolean).join('; ');
- PEND.push([name,ver,mach,pl.bus||'',String(a.rom.length/1024),a.sha,a.cs.st!==undefined?hx(a.cs.st,8):'',notes]);
+ const notes=[pre+' '+(fname||'a loaded file')+(a.cs.ok?'':' (checksum not valid)'),inf?'platform inferred from modules':'',ex?ex.id:'',b0&&b0!==BASE?'linked at '+hx(b0,6):'',a.mods.length+' modules',a.hd&&a.hd.cp||''].filter(Boolean).join('; ');
+ return[name,ver,mach,pl.bus||'',String(a.rom.length/1024),a.sha,a.cs.st!==undefined?hx(a.cs.st,8):'',notes]}
+function noteUnknown(a,fname){ // remember ROMs that aren't in the list, so they can be added to the CSV later
+ if(!a||!a.hdr||a.known||a.f==='enc'||!a.sha)return;
+ if(PEND.some(r=>r[5]===a.sha)||S.csv.some(r=>r.sha===a.sha))return;
+ PEND.push(mkRow(a,fname,'Auto-added from'));
  try{localStorage.setItem('ksNew',JSON.stringify(PEND))}catch(e){}}
-function newView(){
- PEND=PEND.filter(r=>!S.csv.some(c=>c.sha===r[5]));
- const n=PEND.length;$('#newrow').hidden=!n;
- $('#newtxt').textContent=n?n+' ROM'+(n>1?'s':'')+' not in your list: a row with everything found in the file '+(n>1?'has':'has')+' been prepared. This page can’t edit your CSV file itself, so copy the rows and paste them at the bottom of your CSV (for example in GitHub’s editor), or download an updated copy.':''}
-function csvOut(){
- let t=S.csvText||'',nl=/\r\n/.test(t)?'\r\n':'\n';t=t.replace(/^\uFEFF/,'');
- const hdr=t?parseCSV(t)[0]:null,H=(hdr||COLS).map(x=>x.trim().toLowerCase()),at=k=>H.findIndex(x=>x.startsWith(k));
- const idx=[at('name'),at('version'),at('platform'),at('bus'),at('size'),at('sha'),at('checksum'),at('source')];
- if(!t)t=COLS.map(csvq).join(',');
- const rows=PEND.map(r=>{const o=new Array(H.length).fill('');idx.forEach((i,j)=>{if(i>=0)o[i]=r[j]});return o.map(csvq).join(',')});
- if(!/\n$/.test(t))t+=nl;
- return new TextEncoder().encode('\uFEFF'+t+rows.join(nl)+nl)}
 async function copyText(t){
  try{await navigator.clipboard.writeText(t);return true}catch(e){}
  try{const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.append(a);a.select();const ok=document.execCommand('copy');a.remove();return ok}catch(e){return false}}
-$('#newcp').onclick=async()=>{
- const H=COLS.map(x=>x.toLowerCase()),t=PEND.map(r=>r.map(csvq).join(',')).join('\n');
- toast(await copyText(t)?'Copied '+PEND.length+' row'+(PEND.length>1?'s':'')+' in the standard column order (Name, Version, Platform, Bus width, Size, SHA-1, Checksum, Notes). Paste them at the bottom of known-kickstarts.csv.':'Couldn’t reach the clipboard here — use Download CSV instead.')};
-$('#newdl').onclick=()=>{save([{name:'known-kickstarts.csv',data:csvOut()}],'known-kickstarts');toast('Saved known-kickstarts.csv with '+PEND.length+' new row'+(PEND.length>1?'s':'')+'. Replace your old copy with it.')};
-const useCsv=(t,m)=>{S.csvText=t;S.csv=csvRules(t);S.rules=S.csv.concat(S.base);if(S.a){recompute();render()}toast(m+' ('+S.csv.length+' entries).');newView()};
+$('#sh').onclick=async()=>{if(!S.a||!S.a.hdr)return;const t=mkRow(S.a,S.kf&&S.kf.n,'From').map(csvq).join(',');
+ toast(await copyText(t)?'Copied a CSV line for this ROM. Paste it at the bottom of known-kickstarts.csv.':'Couldn’t reach the clipboard here.')};
+const COLIX=h=>{const H=h.map(x=>x.trim().toLowerCase()),at=k=>H.findIndex(x=>x.startsWith(k));return[at('name'),at('version'),at('platform'),at('bus'),at('size'),at('sha'),at('checksum'),at('source')]};
+const verKey=v=>{const m=/(\d+)\.(\d+|\*)/.exec(v||'');return m?m[1]+'.'+m[2]:''};
+function knownRows(){
+ const R=[],csvR=[];
+ if(S.csvText){const T=parseCSV(S.csvText),ix=COLIX(T[0]);for(const r of T.slice(1)){if(!r.some(x=>x.trim()))continue;csvR.push(ix.map(i=>i<0?'':(r[i]||'').trim()))}}
+ const have=new Set(csvR.map(r=>r[5].toLowerCase()).filter(Boolean)),haveVer=new Set(csvR.map(r=>verKey(r[1])).filter(Boolean));
+ for(const r of csvR)R.push({r,isNew:false});
+ PEND=PEND.filter(r=>!have.has(r[5]));
+ const mark=!!S.csvText;
+ for(const m of S.base){
+  if(m.txt!==undefined)continue;
+  if(m.sha){if(have.has(m.sha))continue;const v=/r(\d+\.\d+)/.exec(m.name);R.push({r:[m.name,v?'v'+v[1]:'',m.mach,m.bus||'','',m.sha,'','Built-in list'],isNew:mark})}
+  else{const k=m.ver+'.'+(m.rev<0?'*':m.rev);if(haveVer.has(k))continue;R.push({r:[m.name,'v'+k,m.mach,m.bus||'','','','','Built-in list'],isNew:mark})}}
+ for(const r of PEND)R.push({r,isNew:true});
+ return R}
+function knownView(){
+ const R=knownRows(),t=$('#krows');t.textContent='';
+ for(const x of R){const tr=document.createElement('tr'),r=x.r;
+  const td=(v,k,f)=>{const d=document.createElement('td');if(k)d.className=k;if(f)f(d);else{d.textContent=v;d.title=v}tr.append(d)};
+  td('','n',d=>{if(x.isNew){const b=document.createElement('span');b.className='badge new';b.textContent='New';d.append(b)}d.append(r[0])});
+  td(r[1]);td(r[2]);td(r[3]);td(r[4]?r[4]+' KB':'');td(r[5]?r[5].slice(0,12)+'…':'','s',d=>{d.textContent=r[5]?r[5].slice(0,12)+'…':'';d.title=r[5]});td(r[7]);t.append(tr)}
+ const n=R.filter(x=>x.isNew).length;
+ document.querySelector('[data-t=kn]').textContent='Known Kickstarts'+(n?' · '+n+' new':'');
+ $('#kdl').textContent=n?'Download CSV with '+n+' new row'+(n>1?'s':''):'Download CSV';
+ $('#kinfo').textContent=S.csvText?(n?'The new rows are in the built-in list or in ROMs you have loaded, but not in your CSV.':'Your CSV has everything this page knows about.'):'No known-kickstarts.csv is loaded, so this shows the built-in list. Drop your CSV on the page to compare.'}
+function csvOut(){
+ let t=S.csvText||'';const nl=/\r\n/.test(t)?'\r\n':'\n';t=t.replace(/^﻿/,'');
+ const hdr=t?parseCSV(t)[0]:COLS,ix=COLIX(hdr),W=hdr.length;
+ if(!t)t=COLS.map(csvq).join(',');
+ const rows=knownRows().filter(x=>x.isNew||!S.csvText).map(x=>{const o=new Array(W).fill('');ix.forEach((i,j)=>{if(i>=0)o[i]=x.r[j]});return o.map(csvq).join(',')});
+ if(!/\n$/.test(t))t+=nl;
+ return new TextEncoder().encode('﻿'+t+rows.join(nl)+(rows.length?nl:''))}
+$('#kdl').onclick=()=>{save([{name:'known-kickstarts.csv',data:csvOut()}],'known-kickstarts');toast('Saved known-kickstarts.csv. Replace your old copy with it.')};
+const useCsv=(t,m)=>{S.csvText=t;S.csv=csvRules(t);S.rules=S.csv.concat(S.base);if(S.a){recompute();render()}toast(m+' ('+S.csv.length+' entries).');knownView()};
 // A known-kickstarts.csv next to this page loads automatically when it is served over http; otherwise drop the CSV on the page (it is then remembered in this browser).
 fetch('known-kickstarts.csv').then(r=>r.ok?r.text():Promise.reject()).then(t=>useCsv(t,'Loaded known-kickstarts.csv')).catch(()=>{try{const t=localStorage.getItem('ksCsv');if(t)useCsv(t,'Loaded your saved CSV list')}catch(e){}});
 render();
