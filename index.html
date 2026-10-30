@@ -54,6 +54,7 @@ button.primary{background:var(--acc);border-color:var(--acc);color:#fff}button.p
 .xpad{padding:14px}.xpad p{margin:0 0 10px;color:var(--mut);font-size:12.5px}.xrow{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 #xrows tr{cursor:default}#xs{font-size:12.5px;margin-top:10px;color:var(--mut)}
 td button{padding:3px 9px;font-size:12px}
+#newrow .row2{display:flex;gap:8px;flex-wrap:wrap}#newrow{margin-top:10px;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
 </style></head><body>
 <div class="wrap">
 <div class="top">
@@ -74,6 +75,7 @@ td button{padding:3px 9px;font-size:12px}
    <dt>Source File(s):</dt><dd id="s">-</dd>
   </dl>
   <div class="note" id="note"></div>
+  <div id="newrow" hidden><div class="plan" id="newtxt"></div><div class="row2"><button id="newcp">Copy new rows</button><button id="newdl">Download CSV</button></div></div>
  </div>
  <div class="card btns">
   <div class="etabs"><button class="etab on" data-e="rom">Export ROM</button><button class="etab" data-e="bin">Export BIN</button></div>
@@ -493,6 +495,7 @@ function render(){
  const X=S.x;$('#xr').hidden=$('#xrd').hidden=!X;
  if(X){const cs=X.cs.ok?'checksum valid':X.hdr?'checksum not valid':'no header';set('#xrd',(X.m?X.m.name:'Extended ROM')+' · '+kb(X.rom.length)+' · '+cs+' · '+(X.known?'known good':'not in known list')+'\n'+X.sha)}
  $('#note').textContent=[S.note].concat(warns()).filter(Boolean).join('\n');
+ noteUnknown(a,S.kf&&S.kf.n);if(S.x)noteUnknown(S.x,S.f[S.f.length-1].n);newView();
  extCompute();outputs();mods();hex();extView()}
 const verOf=id=>{const m=/(\d+)\.(\d+)/.exec(id);return m?m[1]+'.'+m[2]:''};
 function dlMod(m){const h=toHunk(S.a.rom,m);if(h.err)return toast(h.err);
@@ -636,7 +639,39 @@ async function save(F,st){
   catch(e){if(e.code!=='declined')toast('Couldn’t save: '+(e.message||e.code))}}
  else for(const f of F){const u=URL.createObjectURL(new Blob([f.data])),a=document.createElement('a');a.href=u;a.download=f.name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000)}}
 const stem=n=>n.replace(/\.[^.]*$/,'');
-const useCsv=(t,m)=>{S.csv=csvRules(t);S.rules=S.csv.concat(S.base);if(S.a){recompute();render()}toast(m+' ('+S.csv.length+' entries).')};
+// ---- unknown ROMs: prepare a CSV row for each one; the page can't write to disk, so it offers the updated CSV as a download ----
+const COLS=['Name','Version','Platform','Bus width','Size (KB)','SHA-1','Checksum (stored longword)','Source / notes'];
+let PEND=[];try{PEND=JSON.parse(localStorage.getItem('ksNew')||'[]')}catch(e){}
+const csvq=v=>/[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;
+function noteUnknown(a,fname){
+ if(!a||!a.hdr||a.known||a.f==='enc'||!a.sha)return;
+ if(PEND.some(r=>r[5]===a.sha)||S.csv.some(r=>r.sha===a.sha))return;
+ const pl=plat(a),inf=/inferred/.test(pl.m||''),mach=(pl.m||'').replace(' (inferred)',''),b0=a.mods.length?a.mods[0].base:0;
+ const ex=a.mods.find(m=>m.name==='exec.library'),rel=a.hd&&a.hd.rel;
+ const name=a.ext?'Extended ROM':a.m&&a.m.name?a.m.name:rel?'Kickstart '+rel.replace(/\s*ROM$/i,''):'Kickstart',ver=a.ver?'v'+a.ver.join('.'):'';
+ const notes=['Auto-added from '+(fname||'a loaded file')+(a.cs.ok?'':' (checksum not valid)'),inf?'platform inferred from modules':'',ex?ex.id:'',b0&&b0!==BASE?'linked at '+hx(b0,6):'',a.mods.length+' modules',a.hd&&a.hd.cp||''].filter(Boolean).join('; ');
+ PEND.push([name,ver,mach,pl.bus||'',String(a.rom.length/1024),a.sha,a.cs.st!==undefined?hx(a.cs.st,8):'',notes]);
+ try{localStorage.setItem('ksNew',JSON.stringify(PEND))}catch(e){}}
+function newView(){
+ PEND=PEND.filter(r=>!S.csv.some(c=>c.sha===r[5]));
+ const n=PEND.length;$('#newrow').hidden=!n;
+ $('#newtxt').textContent=n?n+' ROM'+(n>1?'s':'')+' not in your list: a row with everything found in the file '+(n>1?'has':'has')+' been prepared. This page can’t edit your CSV file itself, so copy the rows and paste them at the bottom of your CSV (for example in GitHub’s editor), or download an updated copy.':''}
+function csvOut(){
+ let t=S.csvText||'',nl=/\r\n/.test(t)?'\r\n':'\n';t=t.replace(/^\uFEFF/,'');
+ const hdr=t?parseCSV(t)[0]:null,H=(hdr||COLS).map(x=>x.trim().toLowerCase()),at=k=>H.findIndex(x=>x.startsWith(k));
+ const idx=[at('name'),at('version'),at('platform'),at('bus'),at('size'),at('sha'),at('checksum'),at('source')];
+ if(!t)t=COLS.map(csvq).join(',');
+ const rows=PEND.map(r=>{const o=new Array(H.length).fill('');idx.forEach((i,j)=>{if(i>=0)o[i]=r[j]});return o.map(csvq).join(',')});
+ if(!/\n$/.test(t))t+=nl;
+ return new TextEncoder().encode('\uFEFF'+t+rows.join(nl)+nl)}
+async function copyText(t){
+ try{await navigator.clipboard.writeText(t);return true}catch(e){}
+ try{const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.append(a);a.select();const ok=document.execCommand('copy');a.remove();return ok}catch(e){return false}}
+$('#newcp').onclick=async()=>{
+ const H=COLS.map(x=>x.toLowerCase()),t=PEND.map(r=>r.map(csvq).join(',')).join('\n');
+ toast(await copyText(t)?'Copied '+PEND.length+' row'+(PEND.length>1?'s':'')+' in the standard column order (Name, Version, Platform, Bus width, Size, SHA-1, Checksum, Notes). Paste them at the bottom of known-kickstarts.csv.':'Couldn’t reach the clipboard here — use Download CSV instead.')};
+$('#newdl').onclick=()=>{save([{name:'known-kickstarts.csv',data:csvOut()}],'known-kickstarts');toast('Saved known-kickstarts.csv with '+PEND.length+' new row'+(PEND.length>1?'s':'')+'. Replace your old copy with it.')};
+const useCsv=(t,m)=>{S.csvText=t;S.csv=csvRules(t);S.rules=S.csv.concat(S.base);if(S.a){recompute();render()}toast(m+' ('+S.csv.length+' entries).');newView()};
 // A known-kickstarts.csv next to this page loads automatically when it is served over http; otherwise drop the CSV on the page (it is then remembered in this browser).
 fetch('known-kickstarts.csv').then(r=>r.ok?r.text():Promise.reject()).then(t=>useCsv(t,'Loaded known-kickstarts.csv')).catch(()=>{try{const t=localStorage.getItem('ksCsv');if(t)useCsv(t,'Loaded your saved CSV list')}catch(e){}});
 render();
