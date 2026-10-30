@@ -69,6 +69,7 @@ body:not(.admin) [data-t=kn],body:not(.admin) #kn{display:none!important}
   <dl>
    <dt>Version:</dt><dd id="v">-</dd>
    <dt>Release:</dt><dd id="rl">-</dd>
+   <dt>Exec:</dt><dd id="ex">-</dd>
    <dt>Target Platform:</dt><dd id="p">-</dd>
    <dt>Checksum:</dt><dd id="c">-</dd>
    <dt>SHA-1:</dt><dd id="sh" class="mono" style="font-size:12px">-</dd>
@@ -138,7 +139,8 @@ sha1:02843c4253bbd29aba535b0aa3bd9a85034ecde4|Kickstart 2.05 r37.350|A600|16
 sha1:e21545723fe8374e91342617604f1b3d703094f1|Kickstart 3.1 r40.68|A1200|32
 sha1:f8e210d72b4c4853e0c9b85d223ba20e3d1b36ee|Kickstart 3.1 r40.68|A3000|32
 sha1:5fe04842d04a489720f0f4bb0e46948199406f49|Kickstart 3.1 r40.68|A4000|32
-sha1:3525be8887f79b5929e017b42380a79edfee542d|Kickstart 3.1 r40.60|CD32
+sha1:3525be8887f79b5929e017b42380a79edfee542d|Kickstart 3.1 r40.60|CD32|32
+sha1:5bef3d628ce59cc02a66e6e4ae0da48f60e78f7f|CD32 Extended ROM|CD32
 # Supplied by the user as reference files (valid checksums, version 47.96):
 sha1:5b2982876fec2166673be447643881262c84090e|Kickstart 3.2 r47.96|A1200|32
 sha1:b88e364daf23c9c9920e548b0d3d944e65b1031d|Kickstart 3.2 r47.96|A500, A600, A1000, A2000, CDTV|16
@@ -164,7 +166,7 @@ ver:37.299|Kickstart 2.05|A600|16
 ver:37.300|Kickstart 2.05|A600|16
 ver:37.350|Kickstart 2.05|A600|16
 ver:39.106|Kickstart 3.0
-ver:40.60|Kickstart 3.1|CD32
+ver:40.60|Kickstart 3.1|CD32|32
 ver:40.63|Kickstart 3.1|A500, A600, A2000|16
 ver:40.68|Kickstart 3.1
 ver:40.70|Kickstart 3.1|A4000T|32
@@ -351,6 +353,8 @@ function analyse(rom){
  const f=form(rom),hdr=f==='rom',a={rom,f,hdr,cs:hdr?csum(rom):{ok:false,sum:0},ver:null};
  if(hdr&&rom.length>=16)a.ver=[rom[12]<<8|rom[13],rom[14]<<8|rom[15]];
  a.sha=sha1(rom);a.mods=scan(trim(rom));
+ if(a.ver&&a.ver[0]===65535){ // early ROMs (1.x) leave the header version blank; use the exec.library version instead
+  const ex=a.mods.find(m=>m.name==='exec.library'),v=ex&&/(\d+)\.(\d+)/.exec(ex.id);if(v){a.ver=[+v[1],+v[2]];a.verFrom='exec'}}
  const b=a.mods.length?a.mods[0].base:0;
  a.ext=a.mods.some(m=>m.name==='cdtv.device')||b===0xE00000||b===0xF00000; // CDTV / CD32 Extended ROMs
  a.m=S.rules.find(r=>r.sha!==undefined&&r.sha===a.sha)||S.rules.find(r=>r.sha===undefined&&(r.txt!==undefined?has(rom,r.txt):!a.ext&&a.ver&&a.ver[0]===r.ver&&(r.rev<0||r.rev===a.ver[1])))||null;a.known=!!(a.m&&a.m.sha);
@@ -375,7 +379,7 @@ function plat(a){
  if(!a.hdr)return{};
  const M=a.mods,nm=s=>M.some(m=>m.name.toLowerCase().includes(s)),id=s=>M.some(m=>m.id.toLowerCase().includes(s));
  const v=a.ver?a.ver[0]:0,card=nm('carddisk.device'),scsi=nm('scsi.device'),T=' (inferred)';
- if(a.ext)return{m:a.m&&a.m.mach?a.m.mach:(M.some(m=>m.name==='cdtv.device')?'CDTV':'CD32')+' (inferred)',bus:0,t:''};
+ if(a.ext)return{m:a.m&&a.m.mach?a.m.mach:(M.some(m=>m.name==='cd.device'||m.base===0xE00000)?'CD32':'CDTV')+' (inferred)',bus:0,t:''};
  if(a.known)return{m:a.m.mach,bus:a.m.bus,t:''};
  if(nm('a4000 bonus'))return M.some(m=>/\bncr\b/i.test(m.name))||id('a4000t_scsidisk')?{m:'A4000T'+T,bus:32,t:T}:{m:'A4000'+T,bus:32,t:T};
  if(nm('a3000 bonus'))return{m:'A3000 / A3000T'+T,bus:32,t:T};
@@ -387,7 +391,7 @@ function plat(a){
 function header(r){
  const s=[...r.subarray(0,Math.min(r.length,768))].map(c=>c===0||c===10||c===13?'\n':String.fromCharCode(c)).join(''),L=s.split(/\n+/),i=L.findIndex(x=>/AMIGA ROM Operating System/.test(x));
  if(i<0)return null;const t=[];let rel='';
- for(const x of L.slice(i+1)){const y=x.trim();if(!y)continue;if(/^[\w-]+\.(library|device)$/.test(y)||!/^[\x20-\x7e\xa9]+$/.test(y))break;
+ for(const x of L.slice(i+1)){const y=x.trim();if(!y)continue;if(/^[\w-]+\.(library|device)$/.test(y)||/^[\w.-]+ \d+\.\d+ \(/.test(y)||!/^[\x20-\x7e\xa9]+$/.test(y))break;
   if(/^\d+(\.\d+)*\s+ROM$/i.test(y))rel=y;else t.push(y)}
  return{cp:t.join(' '),rel}}
 // Other copyright notices elsewhere in the ROM (third-party code, CDTV software...), de-duplicated.
@@ -485,12 +489,14 @@ function render(){
   :S.f.length===1?['.bin loaded','Drop a second .bin if this is one half of a split pair']:['Two .bin files loaded','Drop new files to replace them'];
  $('#zt').textContent=z[0];$('#zs').textContent=z[1];
  const set=(id,t)=>$(id).textContent=t;
- if(!a){['#v','#rl','#p','#c','#sh','#cp'].forEach(i=>set(i,'-'));set('#zf','');$('#note').textContent='';$('#xr').hidden=$('#xrd').hidden=true;S.res=null;S.eligI=S.eligX='';outputs();mods();hex();extView();knownView();return}
- const ex=a.mods.find(m=>m.name==='exec.library'),cd=a.ext&&a.mods.find(m=>m.name==='cdtv.device'),evs=cd?' · '+cd.id:ex&&a.hdr?' · '+ex.id:'';
- set('#v',(a.f==='enc'?'Encrypted ROM':a.m?a.m.name+(a.ver&&!a.ext?' ('+a.ver.join('.')+')':''):a.ext?'Extended ROM (version not in list)':a.ver?'Unrecognised Kickstart '+a.ver.join('.'):'Not a Kickstart image')+evs);
- set('#rl',a.hd&&a.hd.rel||'-');
+ if(!a){['#v','#rl','#ex','#p','#c','#sh','#cp'].forEach(i=>set(i,'-'));set('#zf','');$('#note').textContent='';$('#xr').hidden=$('#xrd').hidden=true;S.res=null;S.eligI=S.eligX='';outputs();mods();hex();extView();knownView();return}
+ const ex=a.mods.find(m=>m.name==='exec.library'),maj=a.ver?a.ver[0]:0;
+ const KSV={31:'Kickstart 1.1 (NTSC)',32:'Kickstart 1.1 (PAL)',33:'Kickstart 1.2',34:'Kickstart 1.3',36:'Kickstart 1.4 / 2.0beta',37:'Kickstart 2.0x',39:'Kickstart 3.0',40:'Kickstart 3.1',46:'Kickstart 3.1.4',47:'Kickstart 3.2'};
+ set('#v',a.f==='enc'?'Encrypted ROM':a.ext?(a.m?a.m.name:'Extended ROM (not in list)'):!a.hdr?'Not a Kickstart image':KSV[maj]||'Unrecognised release '+maj);
+ set('#rl',a.f==='enc'||!a.ver?'-':a.ver.join('.'));
+ set('#ex',ex&&ex.id?ex.id.replace(/^exec\s+/i,''):'-');
  set('#cp',a.hd&&a.hd.cp||'-');
- const pl=plat(a);set('#p',pl.m||(a.hdr?'Not listed':'-'));
+ const pl=plat(a);set('#p',pl.m?pl.m+(a.ext?' (Extended ROM)':pl.bus?' ('+pl.bus+' bit)':''):(a.hdr?'Not listed':'-'));
  const c=$('#c');c.textContent='';
  if(a.hdr&&a.ext&&!a.cs.ok){c.append('n/a');const b=document.createElement('span');b.className='badge';b.style.background='var(--mut)';b.textContent='Not used by this ROM';c.append(b);c.title='Not every Extended ROM carries a Kickstart-style checksum, so none is checked.'}
  else if(a.hdr){c.append(hx(a.cs.st,8));const b=document.createElement('span');b.className='badge'+(a.cs.ok?'':' bad');b.textContent=a.cs.ok?'Valid':'Not valid';c.append(b);
@@ -519,7 +525,7 @@ function hex(){
  const v=new DataView(r.buffer,r.byteOffset,r.byteLength),a=S.a,bl=Math.min(r.length,KB),co=bl-24;
  const rows=[['Size',kb(r.length)+' ('+r.length.toLocaleString('en-US')+' bytes)']];
  if(a.hdr){rows.push(['Header',[...r.subarray(0,4)].map(b=>b.toString(16).toUpperCase().padStart(2,'0')).join(' ')+'  →  JMP '+hx(v.getUint32(4),8)]);
-  if(a.ver)rows.push(['ROM version',a.ver.join('.')+'  (stored at $00000C)']);
+  if(a.ver)rows.push(['ROM version',a.ver.join('.')+(a.verFrom?'  (header blank; taken from exec.library)':'  (stored at $00000C)')]);
   if(co>=0)rows.push(['Checksum longword',hx(v.getUint32(co),8)+'  at '+hx(co)])}
  else rows.push(['Header','No standard Kickstart header (expected 11 11 4E F9 or 11 14 4E F9)']);
  rows.forEach(([k,t])=>{const a=document.createElement('span'),b=document.createElement('span');a.textContent=k;b.textContent=t;h.append(a,b)});
