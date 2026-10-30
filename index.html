@@ -115,7 +115,7 @@ body:not(.admin) [data-t=kn],body:not(.admin) #kn{display:none!important}
  </div>
  <div id="kn" hidden>
   <div class="scroll"><table><thead><tr><th>Name</th><th>Version</th><th>Platform</th><th>Bus</th><th>Size</th><th>SHA-1</th><th>Notes</th></tr></thead><tbody id="krows"></tbody></table></div>
-  <div class="kbar"><button id="kdl">Download CSV</button><span id="kinfo"></span></div>
+  <div class="kbar"><button id="kdl">Download CSV</button><button id="kreset" title="Forget the built-in list and remembered ROMs, then re-read known-kickstarts.csv">Use CSV only (reload)</button><span id="kinfo"></span></div>
  </div>
  <div id="xp" hidden><div class="xpad">
   <p>Add module files to replace modules in this ROM or add new ones. A replacement with the same name as an existing module overwrites it in place when it fits in the old space, and the ROM keeps its size. Anything that doesn’t fit, and any new module such as icon.library, workbench.library or ehide.device, goes in a second 512 KB area. That makes a 1 MB image: one 27C800 for A500+/A600, or two 27C400 (HI/LO) for the A1200. The second area works on Hyperion Kickstarts (3.1.4, 3.2), 3.1 (40.68) and 2.05 (37.350). On the older ones the scan table has no room to grow, so the scan of $F00000–$F80000 (CDTV-style expansion ROMs) is dropped to make room. Use module files saved from the Modules tab, or Amiga executables that contain a resident tag. Not tested on real hardware — try the result in an emulator first.</p>
@@ -707,6 +707,18 @@ function csvOut(){
 $('#kdl').onclick=()=>{save([{name:'known-kickstarts.csv',data:csvOut()}],'known-kickstarts');toast('Saved known-kickstarts.csv. Replace your old copy with it.')};
 const useCsv=(t,m)=>{S.csvText=t;S.csv=csvRules(t);S.rules=S.csv.concat(S.base);if(S.a){recompute();render()}toast(m+' ('+S.csv.length+' entries).');knownView()};
 // A known-kickstarts.csv next to this page loads automatically when it is served over http; otherwise drop the CSV on the page (it is then remembered in this browser).
-fetch('known-kickstarts.csv').then(r=>r.ok?r.text():Promise.reject()).then(t=>useCsv(t,'Loaded known-kickstarts.csv')).catch(()=>{try{const t=localStorage.getItem('ksCsv');if(t)useCsv(t,'Loaded your saved CSV list')}catch(e){}});
+const CSVONLY=/[?&#]csvonly\b/.test(location.search+location.hash);
+function loadCsvFile(forget){ // re-read known-kickstarts.csv from next to the page, bypassing the browser cache
+ return fetch('known-kickstarts.csv?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():Promise.reject()).then(t=>useCsv(t,forget?'Reloaded known-kickstarts.csv':'Loaded known-kickstarts.csv')).catch(()=>{
+  if(forget){toast('No known-kickstarts.csv found next to this page (it only loads over http). Drop your CSV on the page instead.');return}
+  try{const t=localStorage.getItem('ksCsv');if(t)useCsv(t,'Loaded your saved CSV list')}catch(e){}})}
+function forgetAll(){ // drop the built-in list, remembered unknown ROMs and the saved CSV copy, then re-read the CSV
+ S.base=[];PEND=[];S.csv=[];S.csvText='';S.rules=[];
+ try{localStorage.removeItem('ksNew');localStorage.removeItem('ksCsv')}catch(e){}
+ if(S.a)recompute();render();return loadCsvFile(true)}
+let kt=0;$('#kreset').onclick=()=>{const b=$('#kreset');
+ if(!kt){b.textContent='Click again to confirm';kt=setTimeout(()=>{kt=0;b.textContent='Use CSV only (reload)'},4000);return}
+ clearTimeout(kt);kt=0;b.textContent='Use CSV only (reload)';forgetAll()};
+if(CSVONLY)forgetAll();else loadCsvFile(false);
 render();
 </script></body></html>
