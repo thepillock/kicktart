@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Amiga Kickstart ROM Converter</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--line:#d9dce2;--tx:#1d2330;--mut:#667085;--acc:#2563eb;--ok:#15803d;--warn:#b45309;--btn:#eef1f6;--row:#f6f7f9;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1d23;--card:#262932;--line:#3a3e4a;--tx:#e6e8ee;--mut:#9aa1b2;--acc:#5b9dff;--ok:#16a34a;--warn:#fb923c;--btn:#30343f;--row:#2b2e38}}
+:root[data-theme="dark"]{--bg:#1b1d23;--card:#262932;--line:#3a3e4a;--tx:#e6e8ee;--mut:#9aa1b2;--acc:#5b9dff;--ok:#16a34a;--warn:#fb923c;--btn:#30343f;--row:#2b2e38}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1040px;margin:0 auto;padding:12px}
+.top{display:grid;grid-template-columns:1fr 1.5fr 1fr;gap:12px}
+@media(max-width:820px){.top{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+#drop{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border:2px dashed var(--line);min-height:170px;cursor:pointer;gap:4px}
+#drop.hot,#drop:focus-within{border-color:var(--acc);background:var(--row)}
+#pick{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+#drop svg{color:var(--mut)}#drop b{font-size:15px}#drop small{color:var(--mut)}
+dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:0}dt{color:var(--mut);font-weight:600}dd{margin:0;overflow-wrap:anywhere;white-space:pre-line}
+.badge{font-size:11px;padding:1px 6px;border-radius:4px;margin-left:6px;color:#fff;background:var(--ok)}.badge.bad{background:var(--warn)}
+.btns{display:flex;flex-direction:column;gap:8px}
+button{font:inherit;color:var(--tx);background:var(--btn);border:1px solid var(--line);border-radius:8px;padding:10px;cursor:pointer;font-weight:600}
+button:disabled{opacity:.45;cursor:not-allowed}button:not(:disabled):hover{border-color:var(--acc)}
+.btns label{font-size:12.5px;color:var(--mut)}
+select{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 6px;margin:4px 0}
+.note{margin-top:10px;color:var(--warn);font-size:12.5px;white-space:pre-line}
+#toast{margin:8px 2px 0;color:var(--mut);font-size:12.5px;min-height:1em}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-top:12px;flex-wrap:wrap}
+.tab{border:0;border-bottom:2px solid transparent;background:none;border-radius:0;padding:10px 12px}
+.tab.on{border-color:var(--acc);color:var(--acc)}
+.panel{background:var(--card);border:1px solid var(--line);border-top:0;border-radius:0 0 10px 10px}
+.scroll{overflow:auto;max-height:55vh}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:7px 10px;white-space:nowrap}
+th{position:sticky;top:0;background:var(--card);color:var(--mut);border-bottom:1px solid var(--line)}
+tbody tr:nth-child(odd){background:var(--row)}tbody tr{cursor:pointer}tbody tr:hover{outline:1px solid var(--acc)}
+td.n{font-weight:700}td:last-child{color:var(--mut)}
+.mono,pre,td.o{font-family:ui-monospace,Consolas,monospace}
+.empty{padding:28px;text-align:center;color:var(--mut)}
+pre{margin:0;padding:10px 12px;font-size:12px;overflow:auto;line-height:1.5}
+.hexbar{display:flex;gap:8px;align-items:center;padding:10px;flex-wrap:wrap}
+.hexbar button{padding:5px 10px}
+input[type=text]{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 6px;width:96px}
+.hdr{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.hdr span:nth-child(odd){color:var(--mut)}
+footer{color:var(--mut);font-size:12px;margin:12px 2px}
+.btnlike{display:inline-block;font-weight:600;background:var(--btn);border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer}.btnlike:hover{border-color:var(--acc)}
+#pick2{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.bigpad{padding:14px}.bigpad p{margin:0 0 10px;color:var(--mut);font-size:12.5px}.bigrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+#brows tr{cursor:default}#bgs{white-space:pre-line;font-size:12.5px;margin:10px 0;color:var(--mut)}
+.bigout{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+</style></head><body>
+<div class="wrap">
+<div class="top">
+ <label class="card" id="drop" for="pick">
+  <svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l5 5h-3v6h-4V8H7l5-5zM5 17h14v3H5z"/></svg>
+  <b id="zt"></b><small id="zs"></small>
+ </label>
+ <div class="card">
+  <dl>
+   <dt>Version:</dt><dd id="v">-</dd>
+   <dt>Release:</dt><dd id="rl">-</dd>
+   <dt>Target Platform:</dt><dd id="p">-</dd>
+   <dt>Architecture:</dt><dd id="ar">-</dd>
+   <dt>Checksum:</dt><dd id="c">-</dd>
+   <dt>SHA-1:</dt><dd id="sh" class="mono" style="font-size:12px">-</dd>
+   <dt>Copyright:</dt><dd id="cp">-</dd>
+   <dt>Source File(s):</dt><dd id="s">-</dd>
+  </dl>
+  <div class="note" id="note"></div>
+ </div>
+ <div class="card btns">
+  <button id="b1" disabled>Output single BIN file</button>
+  <button id="b2" disabled>Output split HI/LO BIN files</button>
+  <button id="b3" disabled>Output ROM for Emulator</button>
+  <button id="flip" hidden>Swap HI/LO</button>
+  <label>Output size per file: <select id="sz" disabled><option value="131072">128 KB</option><option value="262144">256 KB</option><option value="524288" selected>512 KB (e.g. 27C400)</option><option value="1048576">1 MB (e.g. 27C800)</option><option value="2097152">2 MB (e.g. 27C160)</option></select><br>The image is repeated to fill the chosen size.</label>
+ </div>
+</div>
+<div id="toast"></div>
+<div class="tabs">
+ <button class="tab on" data-t="mod">Resident Modules (RomTags)</button>
+ <button class="tab" data-t="hex">Hex &amp; Header Inspector</button>
+ <button class="tab" data-t="big">1MB / Replace modules</button>
+</div>
+<div class="panel">
+ <div id="mod"><div class="scroll"><table>
+  <thead><tr><th>Offset</th><th>Module Name</th><th>Version</th><th>Type</th><th>Priority</th><th>ID String</th></tr></thead>
+  <tbody id="rows"></tbody></table>
+  <div class="empty" id="empty">Load an Amiga Kickstart ROM or BIN image to view resident modules.</div></div></div>
+ <div id="hex" hidden>
+  <div class="hdr" id="hdr"></div>
+  <div class="hexbar"><button id="hp">◀ Prev</button><button id="hn">Next ▶</button>
+   <span>Go to $</span><input type="text" id="go" placeholder="000042"><button id="hg">Go</button>
+   <span class="mono" id="hr" style="color:var(--mut)"></span></div>
+  <pre id="hx">Load a ROM or BIN image to inspect it.</pre>
+ </div>
+ <div id="big" hidden><div class="bigpad">
+  <p>Builds a 1MB Kickstart: a second 512 KB bank at $E00000 is added and the ROM is patched to scan it. Modules you pick from a donor ROM are moved into that bank, the original is switched off and its priority is kept. For Hyperion Kickstarts (3.1.4, 3.2) on A500+/A600 (one 27C800) and A1200 (two 27C400). Not tested on real hardware — try the result in an emulator first.</p>
+  <div class="note" id="bgm" style="margin:0 0 10px"></div>
+  <div class="bigrow"><label class="btnlike" for="pick2">Choose donor ROM…</label><span id="bgd" style="color:var(--mut)">No donor ROM chosen</span></div>
+  <div class="scroll"><table><thead><tr><th></th><th>Module</th><th>In your ROM</th><th>In donor</th><th>Size</th><th>Priority</th><th>Notes</th></tr></thead><tbody id="brows"></tbody></table><div class="empty" id="bempty"></div></div>
+  <div id="bgs"></div>
+  <div class="bigout"><button id="o1" disabled>1MB ROM for emulator (.rom)</button><button id="o2" disabled>Single 1MB BIN: A500+ / A600 (one 27C800)</button><button id="o3" disabled>HI/LO BIN files: A1200 (two 27C400)</button><button id="o4" disabled>Extension bank only (.rom)</button></div>
+ </div></div>
+</div>
+<footer>Everything runs in your browser — your files are never uploaded. The hex view shows the image in normal ROM byte order. Drop a known-kickstarts.csv or kickstart-versions.txt file here to use your own list.</footer>
+<input type="file" id="pick" multiple>
+<input type="file" id="pick2" multiple>
+</div>
+<script>
+const LIST=`# match | name | machines | bus width.  match = sha1:<hash>, ver:<ver>.<rev|*> or text:<string>. First match wins.
+# Known-good SHA-1 hashes: FS-UAE docs (fs-uae.net/docs/kickstart-roms), A1200 3.1 also in the kick2f readme.
+sha1:891e9a547772fe0c6c19b610baf8bc4ea7fcb785|Kickstart 1.3 r34.5|A500, A1000, A2000, CDTV|16
+sha1:11f9e62cf299f72184835b7b2a70a16333fc0d88|Kickstart 1.2 r33.180|A500, A1000, A2000|16
+sha1:c5839f5cb98a7a8947065c3ed2f14f5f42e334a1|Kickstart 2.04 r37.175|A500+|16
+sha1:02843c4253bbd29aba535b0aa3bd9a85034ecde4|Kickstart 2.05 r37.350|A600|16
+sha1:e21545723fe8374e91342617604f1b3d703094f1|Kickstart 3.1 r40.68|A1200|32
+sha1:f8e210d72b4c4853e0c9b85d223ba20e3d1b36ee|Kickstart 3.1 r40.68|A3000|32
+sha1:5fe04842d04a489720f0f4bb0e46948199406f49|Kickstart 3.1 r40.68|A4000|32
+sha1:3525be8887f79b5929e017b42380a79edfee542d|Kickstart 3.1 r40.60|CD32
+# Supplied by the user as reference files (valid checksums, version 47.96):
+sha1:5b2982876fec2166673be447643881262c84090e|Kickstart 3.2 r47.96|A1200|32
+sha1:b88e364daf23c9c9920e548b0d3d944e65b1031d|Kickstart 3.2 r47.96|A500, A600, A1000, A2000, CDTV|16
+sha1:8a2405087ce182225656dd0b93069c45743f9e34|Kickstart 3.1.4 r46.143|A600|16
+# CDTV Extended ROMs (256 KB). The v1.0 hash is also in the FS-UAE docs; the v2.30 and v2.7 hashes come from user-supplied files.
+sha1:7ba40ffa17e500ed9fed041f3424bd81d9c907be|CDTV Extended ROM v1.0|CDTV
+sha1:ed7e461d1fff3cda321631ae42b80e3cd4fa5ebb|CDTV Extended ROM v2.30|CDTV
+sha1:5bc114bba29f60a614a311745b3e2464bfa06846|CDTV Extended ROM v2.7|CDTV
+text:cdtv 35.9 (15.3.91)|CDTV Extended ROM v1.0|CDTV
+text:cdtv 35.14 (29.2.92)|CDTV Extended ROM v2.30|CDTV
+text:cdtv 35.12 (28.1.92)|CDTV Extended ROM v2.7|CDTV
+ver:31.34|Kickstart 1.1 (NTSC)|A1000|16
+ver:32.34|Kickstart 1.1 (PAL)|A1000|16
+ver:33.166|Kickstart 1.2|A1000|16
+ver:33.180|Kickstart 1.2|A500, A1000, A2000|16
+ver:34.5|Kickstart 1.3|A500, A1000, A2000, CDTV|16
+ver:36.207|Kickstart 2.02|A3000|32
+ver:36.*|Kickstart 1.4 / 2.0 beta (36.x)|A3000|32
+ver:37.175|Kickstart 2.04|A500+, A2000, A3000
+ver:37.299|Kickstart 2.05|A600|16
+ver:37.300|Kickstart 2.05|A600|16
+ver:37.350|Kickstart 2.05|A600|16
+ver:39.106|Kickstart 3.0|A1200, A4000|32
+ver:40.60|Kickstart 3.1|CD32
+ver:40.63|Kickstart 3.1|A500, A600, A2000|16
+ver:40.68|Kickstart 3.1|A1200, A3000, A4000|32
+ver:40.70|Kickstart 3.1|A4000T|32
+ver:47.*|Kickstart 3.2 (Hyperion Entertainment)`;
+const $=s=>document.querySelector(s),KB=524288;
+const hx=(n,w=6)=>'$'+n.toString(16).toUpperCase().padStart(w,'0'),kb=n=>(n/1024)+' KB';
+const NT={0:'UNKNOWN',1:'TASK',3:'DEVICE',8:'RESOURCE',9:'LIBRARY'};
+let S={mode:'',f:[],rules:[],flip:false,a:null,hi:null,lo:null,note:'',off:0};
+
+function parseRules(t){return t.split('\n').map(l=>l.trim()).filter(l=>l&&l[0]!=='#').map(l=>{
+ const p=l.split('|').map(x=>x.trim());if(p.length<2||!p[1])return null;
+ const r={name:p[1],mach:p[2]||'',bus:+p[3]||0},m=p[0];
+ if(/^ver:/i.test(m)){const x=/^(\d+)\.(\d+|\*)$/.exec(m.slice(4).trim());if(!x)return null;r.ver=+x[1];r.rev=x[2]==='*'?-1:+x[2]}
+ else if(/^text:/i.test(m)){r.txt=m.slice(5).trim();if(!r.txt)return null}
+ else if(/^sha1:/i.test(m)){r.sha=m.slice(5).trim().toLowerCase();if(!/^[0-9a-f]{40}$/.test(r.sha))return null}
+ else return null;
+ return r}).filter(Boolean)}
+S.base=parseRules(LIST);S.csv=[];S.rules=S.base;
+
+function form(d){
+ if(d.length>=11&&String.fromCharCode(...d.subarray(0,11))==='AMIROMTYPE1')return'enc';
+ if(d.length<4)return'';
+ if(d[0]==17&&(d[1]==17||d[1]==20)&&d[2]==0x4E&&d[3]==0xF9)return'rom';
+ if(d[1]==17&&(d[0]==17||d[0]==20)&&d[2]==0xF9&&d[3]==0x4E)return'swp';
+ return''}
+function csum(r){
+ if(r.length<4||r.length%4)return{ok:false,sum:0,st:0};
+ const bl=Math.min(r.length,KB);let ok=r.length%bl===0,first;
+ for(let o=0;o<r.length;o+=bl){let s=0;
+  for(let i=o;i<o+bl;i+=4){s+=((r[i]<<24|r[i+1]<<16|r[i+2]<<8|r[i+3])>>>0);if(s>0xFFFFFFFF)s=s-0x100000000+1}
+  if(first===undefined)first=s;if(s!==0xFFFFFFFF)ok=false}
+ const q=bl-24,st=q>=0?((r[q]<<24|r[q+1]<<16|r[q+2]<<8|r[q+3])>>>0):0;
+ return{ok,sum:first,st}}
+const swap=d=>{const r=new Uint8Array(d.length);for(let i=0;i+1<d.length;i+=2){r[i]=d[i+1];r[i+1]=d[i]}return r};
+const join=(h,l)=>{const n=h.length/2,r=new Uint8Array(n*4);for(let i=0;i<n;i++){const s=i*4,d=i*2;r[s]=h[d+1];r[s+1]=h[d];r[s+2]=l[d+1];r[s+3]=l[d]}return r};
+const split=r=>{const n=r.length/4,h=new Uint8Array(n*2),l=new Uint8Array(n*2);for(let i=0;i<n;i++){const s=i*4,d=i*2;h[d]=r[s+1];h[d+1]=r[s];l[d]=r[s+3];l[d+1]=r[s+2]}return[h,l]};
+const rep=(d,sz)=>{if(!d.length||d.length>=sz||sz%d.length)return d;const r=new Uint8Array(sz);for(let o=0;o<sz;o+=d.length)r.set(d,o);return r};
+function trim(d){ // strip a mirrored copy or blank padding (e.g. 256 KB of ROM programmed twice into a 512 KB chip)
+ while(d.length%2===0&&d.length/2>=262144){
+  const h=d.length/2;let eq=true;
+  for(let i=0;i<h;i++)if(d[i]!==d[i+h]){eq=false;break}
+  if(!eq){const b=d[h];if(b!==0&&b!==255)break;let bl=true;for(let i=h;i<d.length;i++)if(d[i]!==b){bl=false;break}if(!bl)break}
+  d=d.slice(0,h)}
+ return d}
+function has(d,t){const p=[...t].map(c=>c.charCodeAt(0)),e=d.length-p.length;
+ for(let i=0;i<=e;i++){if(d[i]!==p[0])continue;let j=1;while(j<p.length&&d[i+j]===p[j])j++;if(j===p.length)return true}return false}
+function scan(r){ // exec Resident tags: $4AFC, self pointer, version@+11, type@+12, pri@+13, name@+14, id@+18
+ const o=[],v=new DataView(r.buffer,r.byteOffset,r.byteLength);
+ const str=(b,p)=>{const f=p-b;if(!p||f<0||f>=r.length)return null;let s='';
+  for(let i=f;i<r.length&&s.length<120;i++){const c=r[i];if(c<32||(c>=127&&c<160))break;s+=String.fromCharCode(c)}return s.trim()};
+ for(let i=0;i+26<=r.length;i+=2){
+  if(r[i]!==0x4A||r[i+1]!==0xFC)continue;
+  const t=v.getUint32(i+2);if(t<0xE00000||t>0xFFFFFF)continue;
+  const b=t-i;if(b&0xFFFF)continue;
+  const n=str(b,v.getUint32(i+14));if(!n)continue;
+  o.push({off:i,ver:r[i+11],type:r[i+12],pri:r[i+13]<<24>>24,name:n,id:str(b,v.getUint32(i+18))||''})}
+ return o}
+function analyse(rom){
+ const f=form(rom),hdr=f==='rom',a={rom,f,hdr,cs:hdr?csum(rom):{ok:false,sum:0},ver:null};
+ if(hdr&&rom.length>=16)a.ver=[rom[12]<<8|rom[13],rom[14]<<8|rom[15]];
+ a.sha=sha1(rom);
+ a.m=S.rules.find(r=>r.sha!==undefined?r.sha===a.sha:r.txt!==undefined?has(rom,r.txt):a.ver&&a.ver[0]===r.ver&&(r.rev<0||r.rev===a.ver[1]))||null;a.known=!!(a.m&&a.m.sha);
+ a.mods=scan(trim(rom));a.ext=a.mods.some(m=>m.name==='cdtv.device');a.hd=header(rom);a.oth=others(rom,a.hd&&a.hd.cp);return a}
+function sha1(d){
+ const n=d.length,L=((n+8>>6)+1)<<6,u=new Uint8Array(L);u.set(d);u[n]=128;
+ const v=new DataView(u.buffer);v.setUint32(L-8,Math.floor(n/536870912));v.setUint32(L-4,(n<<3)>>>0);
+ let h0=0x67452301,h1=0xEFCDAB89,h2=0x98BADCFE,h3=0x10325476,h4=0xC3D2E1F0;const w=new Uint32Array(80);
+ for(let o=0;o<L;o+=64){
+  for(let i=0;i<16;i++)w[i]=v.getUint32(o+i*4);
+  for(let i=16;i<80;i++){const x=w[i-3]^w[i-8]^w[i-14]^w[i-16];w[i]=(x<<1|x>>>31)>>>0}
+  let a=h0,b=h1,c=h2,d2=h3,e=h4;
+  for(let i=0;i<80;i++){let f,k;
+   if(i<20){f=(b&c)|(~b&d2);k=0x5A827999}else if(i<40){f=b^c^d2;k=0x6ED9EBA1}else if(i<60){f=(b&c)|(b&d2)|(c&d2);k=0x8F1BBCDC}else{f=b^c^d2;k=0xCA62C1D6}
+   const t=((a<<5|a>>>27)+f+e+k+w[i])>>>0;e=d2;d2=c;c=(b<<30|b>>>2)>>>0;b=a;a=t}
+  h0=(h0+a)>>>0;h1=(h1+b)>>>0;h2=(h2+c)>>>0;h3=(h3+d2)>>>0;h4=(h4+e)>>>0}
+ return[h0,h1,h2,h3,h4].map(x=>x.toString(16).padStart(8,'0')).join('')}
+// Only the A1200 3.2 ROM has MOVEA.L #$08000000,An (a 32-bit address-space probe, in expansion.library); the A500/600/1000/2000/CDTV build doesn't.
+const probe=r=>{for(let i=0;i+6<=r.length;i+=2)if(((r[i]<<8|r[i+1])&0xF1FF)===0x207C&&r[i+2]===8&&!r[i+3]&&!r[i+4]&&!r[i+5])return true;return false};
+// Platform: exact known ROM > Bonus-module clues (A4000T/A4000/A3000) > version list > module-based guesses
+function plat(a){
+ if(!a.hdr)return{};
+ const M=a.mods,nm=s=>M.some(m=>m.name.toLowerCase().includes(s)),id=s=>M.some(m=>m.id.toLowerCase().includes(s));
+ const v=a.ver?a.ver[0]:0,card=nm('carddisk.device'),scsi=nm('scsi.device'),T=' (inferred)';
+ if(a.ext)return{m:'CDTV'+(a.m?'':' (inferred)'),bus:0,t:''};
+ if(a.known)return{m:a.m.mach,bus:a.m.bus,t:''};
+ if(nm('a4000 bonus'))return M.some(m=>/\bncr\b/i.test(m.name))||id('a4000t_scsidisk')?{m:'A4000T'+T,bus:32,t:T}:{m:'A4000'+T,bus:32,t:T};
+ if(nm('a3000 bonus'))return{m:'A3000 / A3000T'+T,bus:32,t:T};
+ if(a.m&&a.m.mach)return{m:a.m.mach,bus:a.m.bus,t:''};
+ if(v&&v<39)return card&&scsi?{m:'A600'+T,bus:16,t:T}:{m:'A500 / A1000 / A2000 / CDTV'+T,bus:16,t:T};
+ if(v>=39&&card&&scsi)return probe(a.rom)?{m:'A1200'+T,bus:32,t:T}:{m:'A500 / A600 / A1000 / A2000 / CDTV'+T,bus:16,t:T};
+ return{}}
+// The title block near the top of a ROM: "AMIGA ROM Operating System...", copyright lines, then a release name such as "3.2 ROM".
+function header(r){
+ const s=[...r.subarray(0,Math.min(r.length,768))].map(c=>c===0||c===10||c===13?'\n':String.fromCharCode(c)).join(''),L=s.split(/\n+/),i=L.findIndex(x=>/AMIGA ROM Operating System/.test(x));
+ if(i<0)return null;const t=[];let rel='';
+ for(const x of L.slice(i+1)){const y=x.trim();if(!y)continue;if(/^[\w-]+\.(library|device)$/.test(y)||!/^[\x20-\x7e\xa9]+$/.test(y))break;
+  if(/^\d+(\.\d+)*\s+ROM$/i.test(y))rel=y;else t.push(y)}
+ return{cp:t.join(' '),rel}}
+// Other copyright notices elsewhere in the ROM (third-party code, CDTV software...), de-duplicated.
+function others(r,main){
+ const out=[],seen=new Set(),k=x=>x.toLowerCase().replace(/all rights reserved/g,'').replace(/[^a-z0-9]/g,''),mk=main?k(main):'';let s='';
+ const flush=()=>{if(s.length>=12){const m=/\(c\)|copyright/i.exec(s);if(m){const t=s.slice(m.index).replace(/",0/g,' ').replace(/\s+/g,' ').trim(),q=k(t);
+  if((/^copyright/i.test(t)||/^\(c\)/i.test(t))&&q&&!seen.has(q)&&!(mk&&mk.includes(q))){seen.add(q);out.push(t)}}}s=''};
+ for(let i=0;i<r.length;i++){const c=r[i];if((c>=32&&c<127)||c===0xA9)s+=String.fromCharCode(c);else flush()}
+ flush();return out}
+const sc=a=>(a.hdr?1:0)+(a.cs.ok?1:0);
+
+function recompute(){
+ S.a=null;S.note='';S.hi=S.lo=null;S.off=0;
+ if(S.mode==='rom')S.a=analyse(S.f[0].d);
+ else if(S.mode==='bin'){
+  const mk=d=>{const t=trim(d);return{x:analyse(t),n:t.length!==d.length?'The image held repeated or blank padding ('+kb(d.length)+'); trimmed to '+kb(t.length)+'.':''}};
+  if(S.f.length===1){const r=mk(swap(S.f[0].d));S.a=r.x;S.note=r.n}
+  else{
+   const A=mk(join(S.f[0].d,S.f[1].d)),B=mk(join(S.f[1].d,S.f[0].d));
+   let first=sc(B.x)<=sc(A.x);
+   S.note=sc(A.x)===sc(B.x)?'Couldn’t tell HI from LO — assuming the first file is HI. Use “Swap HI/LO” if that’s wrong.':'HI/LO order detected automatically.';
+   if(S.flip){first=!first;S.note='HI/LO order swapped manually.'}
+   S.hi=S.f[first?0:1];S.lo=S.f[first?1:0];
+   const R=first?A:B;S.a=R.x;if(R.n)S.note+='\n'+R.n}}}
+function warns(){
+ const a=S.a,w=[];
+ if(a.f==='enc')w.push('Encrypted Cloanto/Amiga Forever ROM — it can’t be converted by byte-swapping.');
+ else if(!a.hdr){
+  if(S.mode==='rom'&&form(S.f[0].d)==='swp')w.push('This .rom looks byte-swapped already, so it may really be a .bin.');
+  else if(S.mode==='bin'&&S.f.length===1&&form(S.f[0].d)==='rom')w.push('This .bin is already in normal ROM order, so it may really be a .rom.');
+  else if(S.mode==='bin'&&S.f.length===1)w.push('Not a complete Kickstart. If this is one half of a split pair, add the other .bin.');
+  else w.push(S.mode==='bin'?'No valid Kickstart found when combining these files — try “Swap HI/LO”.':'No standard Kickstart header found.')}
+ else if(!a.cs.ok&&!a.ext)w.push('Header found, but the checksum is not valid (patched or non-standard ROM, or a damaged file).');
+ if(a.hdr&&!a.m&&a.ver)w.push('This version isn’t in the version list. Drop your own kickstart-versions.txt to add it.');
+ return w}
+
+function render(){
+ const a=S.a,z=!S.mode?['Drop Kickstart file(s) here','Single .rom, single .bin, or split 32-bit BIN pair']
+  :S.mode==='rom'?['Kickstart .rom loaded','Drop another file to replace it']
+  :S.f.length===1?['.bin loaded','Drop a second .bin if this is one half of a split pair']:['Two .bin files loaded','Drop new files to replace them'];
+ $('#zt').textContent=z[0];$('#zs').textContent=z[1];
+ const set=(id,t)=>$(id).textContent=t;
+ if(!a){['#v','#rl','#p','#ar','#c','#sh','#cp','#s'].forEach(i=>set(i,'-'));$('#note').textContent='';
+  ['#b1','#b2','#b3'].forEach(i=>$(i).disabled=true);$('#sz').disabled=true;$('#flip').hidden=true;mods();hex();bigView();return}
+ const ex=a.mods.find(m=>m.name==='exec.library'),ev=ex&&/\d+\.\d+/.exec(ex.id);
+ const cd=a.ext&&a.mods.find(m=>m.name==='cdtv.device'),evs=cd?' · '+cd.id:ex&&a.hdr?' · '+ex.id:'';
+ set('#v',(a.f==='enc'?'Encrypted ROM':a.m?a.m.name+(a.ver&&!a.ext?' ('+a.ver.join('.')+')':''):a.ext?'CDTV Extended ROM (version not in list)':a.ver?'Unrecognised Kickstart '+a.ver.join('.'):'Not a Kickstart image')+evs);
+ set('#rl',a.hd&&a.hd.rel||'-');
+ const ot=a.oth||[];set('#cp',[a.hd&&a.hd.cp||''].concat(ot.slice(0,3).map(x=>'Also: '+x),ot.length>3?['+'+(ot.length-3)+' more']:[]).filter(Boolean).join('\n')||'-');
+ const pl=plat(a);set('#p',pl.m||(a.hdr?'Not listed':'-'));
+ set('#ar',a.ext?'CDTV Extended ROM; split gives 2 × '+kb(a.rom.length/2)+' images (HI + LO)':pl.bus===32?'32-bit (two 16-bit EPROMs: HI + LO)'+pl.t:pl.bus===16?'16-bit (single EPROM)'+pl.t:'-');
+ const c=$('#c');c.textContent='';
+ if(a.hdr&&a.ext&&!a.cs.ok){c.append('n/a');const b=document.createElement('span');b.className='badge';b.style.background='var(--mut)';b.textContent='Not used by this ROM';c.append(b);c.title='Not every CDTV Extended ROM carries a Kickstart-style checksum, so none is checked.'}
+ else if(a.hdr){c.append(hx(a.cs.st,8));const b=document.createElement('span');b.className='badge'+(a.cs.ok?'':' bad');b.textContent=a.cs.ok?'Valid':'Not valid';c.append(b);
+  if(!a.cs.ok)c.append(' · sum '+hx(a.cs.sum,8)+' (should be $FFFFFFFF)');
+  c.title='Stored checksum longword (end of ROM minus $18). All longwords in a good ROM add up to $FFFFFFFF.'}else c.textContent='-';
+ const sh=$('#sh'),bd=document.createElement('span');sh.textContent=a.sha;bd.className='badge'+(a.known?'':' bad');bd.textContent=a.known?'Known good':'Not in known list';sh.append(bd);
+ set('#s',S.mode==='bin'&&S.f.length===2?'HI: '+S.hi.n+'\nLO: '+S.lo.n:S.f[0].n);
+ $('#note').textContent=[S.note].concat(warns()).filter(Boolean).join('\n');
+ const ok=a.f!=='enc';
+ $('#b1').disabled=$('#b2').disabled=!(S.mode==='rom'&&ok);$('#b3').disabled=!(S.mode==='bin'&&ok);$('#sz').disabled=S.mode!=='rom';
+ $('#flip').hidden=!(S.mode==='bin'&&S.f.length===2);
+ mods();hex();bigView()}
+function mods(){
+ const t=$('#rows');t.textContent='';const m=S.a?S.a.mods:[];
+ $('#empty').hidden=m.length>0;if(S.a&&!m.length)$('#empty').textContent='No resident modules found in this image.';
+ for(const x of m){const tr=document.createElement('tr');
+  [[hx(x.off,5),'o'],[x.name,'n'],[x.ver,''],['NT_'+(NT[x.type]||x.type),''],[x.pri,''],[x.id,'']].forEach(([v,k])=>{const td=document.createElement('td');td.textContent=v;td.className=k;tr.append(td)});
+  tr.onclick=()=>{S.off=x.off&~15;tab('hex');hex()};t.append(tr)}}
+function hex(){
+ const r=S.a&&S.a.rom,h=$('#hdr');h.textContent='';
+ if(!r){$('#hx').textContent='Load a ROM or BIN image to inspect it.';$('#hr').textContent='';return}
+ const v=new DataView(r.buffer,r.byteOffset,r.byteLength),a=S.a,bl=Math.min(r.length,KB),co=bl-24;
+ const rows=[['Size',kb(r.length)+' ('+r.length.toLocaleString('en-US')+' bytes)']];
+ if(a.hdr){rows.push(['Header',[...r.subarray(0,4)].map(b=>b.toString(16).toUpperCase().padStart(2,'0')).join(' ')+'  →  JMP '+hx(v.getUint32(4),8)]);
+  if(a.ver)rows.push(['ROM version',a.ver.join('.')+'  (stored at $00000C)']);
+  if(co>=0)rows.push(['Checksum longword',hx(v.getUint32(co),8)+'  at '+hx(co)])}
+ else rows.push(['Header','No standard Kickstart header (expected 11 11 4E F9 or 11 14 4E F9)']);
+ rows.forEach(([k,t])=>{const a=document.createElement('span'),b=document.createElement('span');a.textContent=k;b.textContent=t;h.append(a,b)});
+ const L=[];
+ for(let i=0;i<24;i++){const p=S.off+i*16;if(p>=r.length)break;const b=[...r.subarray(p,Math.min(p+16,r.length))];
+  L.push(hx(p)+'  '+b.map(x=>x.toString(16).toUpperCase().padStart(2,'0')).join(' ').padEnd(47)+'  '+b.map(x=>x>31&&x<127?String.fromCharCode(x):'.').join(''))}
+ $('#hx').textContent=L.join('\n');$('#hr').textContent=hx(S.off)+' – '+hx(Math.min(S.off+384,r.length)-1)+' of '+hx(r.length-1)}
+function tab(t){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));$('#mod').hidden=t!=='mod';$('#hex').hidden=t!=='hex';$('#big').hidden=t!=='big'}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>tab(b.dataset.t));
+const step=d=>{if(!S.a)return;S.off=Math.max(0,Math.min(S.off+d,(S.a.rom.length-1)&~15));hex()};
+$('#hp').onclick=()=>step(-384);$('#hn').onclick=()=>step(384);
+$('#hg').onclick=()=>{const n=parseInt($('#go').value.replace(/^\$|^0x/i,''),16);if(S.a&&!isNaN(n)){S.off=Math.min(n,S.a.rom.length-1)&~15;hex()}};
+$('#go').onkeydown=e=>{if(e.key==='Enter')$('#hg').click()};
+
+function parseCSV(t){t=t.replace(/^\uFEFF/,'');const l=t.split('\n')[0],D=l.includes(';')&&!l.includes(',')?';':',',R=[];let r=[],f='',q=false;
+ for(let i=0;i<t.length;i++){const c=t[i];
+  if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+  else if(c==='"')q=true;else if(c===D){r.push(f);f=''}
+  else if(c==='\n'||c==='\r'){if(c==='\r'&&t[i+1]==='\n')i++;r.push(f);f='';R.push(r);r=[]}else f+=c}
+ if(f||r.length){r.push(f);R.push(r)}return R}
+// CSV columns: Name, Version, Platform, Bus width, SHA-1 (others ignored). A SHA-1 gives an exact match; otherwise a version like v34.5 or v47.*
+function csvRules(t){const R=parseCSV(t);if(!R.length)return[];const h=R[0].map(x=>x.trim().toLowerCase()),ix=k=>h.findIndex(x=>x.startsWith(k)),n=ix('name'),v=ix('version'),p=ix('platform'),b=ix('bus'),s=ix('sha');
+ return R.slice(1).map(r=>{const g=i=>i<0?'':(r[i]||'').trim(),sha=g(s).toLowerCase(),ver=/^[vr]?(\d+)\.(\d+|\*)$/i.exec(g(v)),x={name:g(n),mach:g(p),bus:+g(b)||0};
+  if(!x.name)return null;if(/^[0-9a-f]{40}$/.test(sha)){x.sha=sha;return x}
+  if(ver){x.ver=+ver[1];x.rev=ver[2]==='*'?-1:+ver[2];return x}return null}).filter(Boolean)}
+const toast=t=>$('#toast').textContent=t;
+const kind=async f=>{const e=(f.name.match(/\.(\w+)$/)||[])[1];const x=e&&e.toLowerCase();if(x==='rom'||x==='bin'||x==='txt'||x==='csv')return x;
+ const k=form(new Uint8Array(await f.slice(0,16).arrayBuffer()));return k==='rom'||k==='enc'?'rom':k==='swp'?'bin':''};
+const rd=async f=>({n:f.name,d:new Uint8Array(await f.arrayBuffer())});
+function put(m,f){S.mode=m;S.f=f;S.flip=false;recompute();$('#sz').value=S.a&&S.a.ext?'131072':'524288';render()}
+async function load(list){
+ let fl=[...list];if(!fl.length)return;toast('');
+ const k=await Promise.all(fl.map(kind));let listed=false;
+ for(const x of['txt','csv']){const i=k.indexOf(x);if(i<0)continue;const t=await fl[i].text();
+  if(x==='txt'){S.base=parseRules(t);S.rules=S.csv.concat(S.base);toast('Version list loaded ('+S.base.length+' entries).');if(S.a){recompute();render()}}
+  else{useCsv(t,'CSV list loaded');try{localStorage.setItem('ksCsv',t)}catch(e){}}
+  fl=fl.filter((_,j)=>j!==i);k.splice(i,1);listed=true}
+ if(listed&&!fl.length)return;
+ if(fl.length>2)return toast('Drop one .rom file, or one or two .bin files.');
+ if(k.includes(''))return toast('Only .rom and .bin files can be used.');
+ if(fl.some(f=>!f.size||f.size>4194304))return toast('That file is empty or too large to be a Kickstart image.');
+ if(k.includes('rom')){if(fl.length!==1)return toast('A .rom must be dropped on its own — one .rom, or one or two .bin files.');return put('rom',[await rd(fl[0])])}
+ const d=await Promise.all(fl.map(rd));
+ if(d.some(x=>x.d.length%2))return toast('A .bin file with an odd size can’t be a byte-swapped image.');
+ if(d.length===2){if(d[0].d.length!==d[1].d.length)return toast('The two .bin files must be exactly the same size.');return put('bin',d)}
+ if(S.mode==='bin'&&S.f.length===1&&S.f[0].n!==d[0].n){
+  if(S.f[0].d.length!==d[0].d.length)return toast('The two .bin files must be exactly the same size.');return put('bin',[S.f[0],d[0]])}
+ put('bin',d)}
+const z=$('#drop');
+$('#pick').onchange=e=>{load(e.target.files);e.target.value=''};
+addEventListener('dragover',e=>{e.preventDefault();z.classList.add('hot')});
+addEventListener('dragleave',e=>{if(!e.relatedTarget)z.classList.remove('hot')});
+addEventListener('drop',e=>{e.preventDefault();z.classList.remove('hot');load(e.dataTransfer.files)});
+$('#flip').onclick=()=>{S.flip=!S.flip;recompute();render()};
+
+// ---- output ----
+function crc32(b){const t=crc32.t||(crc32.t=Array.from({length:256},(_,n)=>{let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;return c>>>0}));
+ let r=-1;for(let i=0;i<b.length;i++)r=t[(r^b[i])&255]^(r>>>8);return(r^-1)>>>0}
+function zip(F){ // uncompressed ("stored") zip
+ const en=new TextEncoder(),P=[],C=[];let off=0,cs=0;
+ for(const f of F){const n=en.encode(f.name),c=crc32(f.data),L=new DataView(new ArrayBuffer(30)),D=new DataView(new ArrayBuffer(46));
+  L.setUint32(0,0x04034b50,true);L.setUint16(4,20,true);L.setUint16(12,33,true);L.setUint32(14,c,true);L.setUint32(18,f.data.length,true);L.setUint32(22,f.data.length,true);L.setUint16(26,n.length,true);
+  D.setUint32(0,0x02014b50,true);D.setUint16(4,20,true);D.setUint16(6,20,true);D.setUint16(14,33,true);D.setUint32(16,c,true);D.setUint32(20,f.data.length,true);D.setUint32(24,f.data.length,true);D.setUint16(28,n.length,true);D.setUint32(42,off,true);
+  P.push(new Uint8Array(L.buffer),n,f.data);C.push(new Uint8Array(D.buffer),n);off+=30+n.length+f.data.length;cs+=46+n.length}
+ const E=new DataView(new ArrayBuffer(22));E.setUint32(0,0x06054b50,true);E.setUint16(8,F.length,true);E.setUint16(10,F.length,true);E.setUint32(12,cs,true);E.setUint32(16,off,true);
+ return new Blob([...P,...C,new Uint8Array(E.buffer)],{type:'application/zip'})}
+async function save(F,st){
+ let dl=null;try{dl=window.claude&&await claude.use('downloads')}catch(e){}
+ if(dl){ // this viewer only saves approved file types, so the files go in a .zip
+  try{await dl.save({filename:st+'.zip',data:zip(F)});toast('Saved '+st+'.zip containing '+F.map(f=>f.name+' ('+kb(f.data.length)+')').join(' and ')+'.')}
+  catch(e){if(e.code!=='declined')toast('Couldn’t save: '+(e.message||e.code))}}
+ else for(const f of F){const u=URL.createObjectURL(new Blob([f.data])),a=document.createElement('a');a.href=u;a.download=f.name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000)}}
+const stem=n=>n.replace(/\.[^.]*$/,'');
+function out(kind){
+ const a=S.a;if(!a)return;const fx=d=>rep(d,+$('#sz').value),F=[];let st;
+ if(kind==='rom'){st=stem((S.hi||S.f[0]).n);if(S.f.length===2)st=st.replace(/[_-](hi|lo|high|low)$/i,'');F.push({name:st+'.rom',data:a.rom})}
+ else{st=stem(S.f[0].n);
+  if(kind==='bin')F.push({name:st+'.bin',data:fx(swap(a.rom))});
+  else{if(a.rom.length%4)return toast('The image size must be a multiple of 4 bytes to split it.');
+   const[h,l]=split(a.rom);F.push({name:st+'_hi.bin',data:fx(h)},{name:st+'_lo.bin',data:fx(l)})}}
+ save(F,st)}
+$('#b1').onclick=()=>out('bin');$('#b2').onclick=()=>out('split');$('#b3').onclick=()=>out('rom');
+const useCsv=(t,m)=>{S.csv=csvRules(t);S.rules=S.csv.concat(S.base);if(S.a){recompute();render()}toast(m+' ('+S.csv.length+' entries).')};
+// A known-kickstarts.csv next to this page loads automatically when it is served over http; otherwise drop the CSV on the page (it is then remembered in this browser).
+fetch('known-kickstarts.csv').then(r=>r.ok?r.text():Promise.reject()).then(t=>useCsv(t,'Loaded known-kickstarts.csv')).catch(()=>{try{const t=localStorage.getItem('ksCsv');if(t)useCsv(t,'Loaded your saved CSV list')}catch(e){}});
+// ---- 1MB build: a second 512 KB bank at $E00000, scanned thanks to a patched exec scantable ----
+const BASE=0xF80000,XB=0xE00000,BANK=524288;
+const u32=(r,o)=>((r[o]<<24|r[o+1]<<16|r[o+2]<<8|r[o+3])>>>0);
+const p32=(r,o,v)=>{r[o]=v>>>24&255;r[o+1]=v>>>16&255;r[o+2]=v>>>8&255;r[o+3]=v&255};
+const cstr=(r,b,p)=>{const f=p-b;if(!p||f<0||f>=r.length)return null;let s='';for(let i=f;i<r.length&&s.length<120;i++){const c=r[i];if(c<32||(c>=127&&c<160))break;s+=String.fromCharCode(c)}return s.trim()};
+function scan2(r,base=BASE){ // resident tags with their end (EndSkip) and the start of the module body (= end of the previous module)
+ const o=[];
+ for(let i=0;i+26<=r.length;i+=2){
+  if(r[i]!==0x4A||r[i+1]!==0xFC||u32(r,i+2)!==base+i)continue;
+  const n=cstr(r,base,u32(r,i+14));if(!n)continue;
+  const end=u32(r,i+6)-base;if(end<i+26||end>r.length)continue;
+  o.push({off:i,end,type:r[i+12],pri:r[i+13]<<24>>24,name:n,id:cstr(r,base,u32(r,i+18))||''})}
+ let prev=0;for(const m of o){m.start=m.off-prev>=0&&m.off-prev<=0x400?prev:m.off;prev=m.end}
+ return o}
+const absOp=w=>w===0x4EB9||w===0x4EF9||w===0x4879||(w&0xF1FF)===0x41F9||(w&0xC1FF)===0x203C; // JSR/JMP/PEA/LEA abs.l, MOVE.L #imm
+function extract(rom,m){ // module body, its absolute pointers into itself (to be rebased), and calls to fixed addresses elsewhere in the ROM
+ const body=rom.slice(m.start,m.end),lo=BASE+m.start,hi=BASE+m.end,tag=m.off-m.start,rel=[],outw=[];
+ for(let o=0;o+4<=body.length;o+=2){
+  const v=u32(body,o);
+  if(v>=lo&&v<=hi){let k='uncertain';
+   if(o===tag+2||o===tag+6||o===tag+14||o===tag+18||o===tag+22)k='romtag';
+   else if(o>=2&&absOp(body[o-2]<<8|body[o-1]))k='opcode';
+   else if((lo+o)%4===0)k='aligned';
+   rel.push([o,k])}
+  else if(v>=BASE&&v<0x1000000&&o>=2&&absOp(body[o-2]<<8|body[o-1]))outw.push(o)}
+ return{body,rel,outw}}
+function patchScan(main){ // Hyperion scantable F80000,<exec end> F80000,1000000 F00000,F80000 -> F80000,1000000 E00000,E80000 F00000,F80000
+ const ex=scan2(main).find(m=>m.name==='exec.library');if(!ex)throw new Error('exec.library not found');
+ const old=[BASE,BASE+ex.end,BASE,0x1000000,0xF00000,0xF80000,0xFFFFFFFF],nw=[BASE,0x1000000,XB,XB+BANK,0xF00000,0xF80000,0xFFFFFFFF],hits=[];
+ for(let i=0;i+28<=main.length;i+=2){let ok=true;for(let j=0;j<7;j++)if(u32(main,i+j*4)!==old[j]){ok=false;break}if(ok)hits.push(i)}
+ if(hits.length!==1)throw new Error('the exec scantable of this ROM was not found ('+hits.length+' matches)');
+ const r=main.slice();nw.forEach((v,j)=>p32(r,hits[0]+j*4,v));return{rom:r,at:hits[0]}}
+function fixSum(b){const r=b.slice(),n=r.length;p32(r,n-24,0);let s=0;for(let i=0;i<n;i+=4){s+=u32(r,i);if(s>0xFFFFFFFF)s=s-0x100000000+1}p32(r,n-24,(~s)>>>0);return r}
+function pairs(mm,dm){ // modules present in both ROMs (same name; same ID-string prefix when a name occurs more than once)
+ const k=m=>m.name+'|'+m.id.split(' ')[0],cnt=(L,n)=>L.filter(m=>m.name===n).length,out=[];
+ for(const t of mm){let d=dm.find(m=>k(m)===k(t));if(!d&&cnt(mm,t.name)===1&&cnt(dm,t.name)===1)d=dm.find(m=>m.name===t.name);if(d)out.push({name:t.name,t,d})}
+ return out}
+function buildBig(main,donor,offs){
+ const pt=patchScan(main),mr=pt.rom,mm=scan2(main),ps=donor?pairs(mm,scan2(donor)):[],ext=new Uint8Array(BANK).fill(255),lim=BANK-24,rep=[];let cur=0;
+ for(const off of offs){
+  const p=ps.find(q=>q.t.off===off);if(!p)throw new Error('module not found in the donor ROM');
+  const old=p.t,nw=p.d,x=extract(donor,nw);
+  if(x.outw.length)throw new Error(p.name+' calls fixed addresses elsewhere in its own ROM, so it can’t be moved');
+  while(cur%4!==nw.start%4)cur++;
+  if(cur+x.body.length>lim)throw new Error('The extension bank is full — deselect a module.');
+  const delta=XB+cur-(BASE+nw.start);
+  for(const[o]of x.rel)p32(x.body,o,(u32(x.body,o)+delta)>>>0);
+  x.body[nw.off-nw.start+13]=old.pri&255; // keep the replaced module's priority
+  ext.set(x.body,cur);mr[old.off]=0;mr[old.off+1]=0; // switch the old module off
+  rep.push({name:p.name,old,nw,at:XB+cur,unc:x.rel.filter(q=>q[1]==='uncertain').length});cur+=x.body.length}
+ p32(ext,BANK-20,BANK);for(let i=0;i<8;i++){ext[BANK-16+i*2]=0;ext[BANK-15+i*2]=0x18+i}
+ return{main:fixSum(mr),ext:fixSum(ext),rep,used:cur,at:pt.at}}
+let B={for:null,tm:null,donor:null,rows:[],sel:new Set(),res:null,err:'',elig:''};
+function bigElig(){
+ const a=S.a;if(!a)return'Load a Kickstart ROM or BIN image first.';
+ if(!a.hdr)return'This doesn’t look like a Kickstart image.';
+ if(a.ext)return'This is a CDTV Extended ROM, not a Kickstart.';
+ if(a.rom.length!==KB)return'Only 512 KB Kickstart images are supported ('+kb(a.rom.length)+' loaded).';
+ if(!a.cs.ok)return'The checksum of this ROM isn’t valid, so it isn’t safe to build on.';
+ const pl=plat(a).m||'';if(/A3000|A4000|CD32/.test(pl))return pl.replace(' (inferred)','')+' ROMs need extra hardware (ROMY) for 1MB — this is limited to the A500+, A600 and A1200.';
+ try{patchScan(a.rom)}catch(e){return'Not supported yet: '+e.message+'. Only Hyperion Kickstarts (3.1.4, 3.2) are supported so far, not 2.05 or 3.1.'}
+ return''}
+function bigBuild(){B.res=null;B.err='';if(B.elig||!S.a)return;try{B.res=buildBig(S.a.rom,B.donor&&B.donor.rom,[...B.sel])}catch(e){B.err=e.message}}
+const vr=s=>{const m=/(\d+)\.(\d+)/.exec(s);return m?[+m[1],+m[2]]:[0,0]},vcmp=(a,b)=>{const x=vr(a),y=vr(b);return y[0]-x[0]||y[1]-x[1]};
+function bigView(){
+ const a=S.a;
+ if(B.for!==a){B.for=a;B.sel=new Set();B.elig=bigElig();B.tm=B.elig?null:scan2(a.rom)}
+ B.rows=!B.elig&&B.donor?pairs(B.tm,B.donor.mods):[];
+ bigBuild();
+ $('#bgm').textContent=B.elig||B.err;$('#bgm').hidden=!(B.elig||B.err);
+ $('#bgd').textContent=B.donor?B.donor.n+' · '+B.donor.mods.length+' modules'+(B.donor.exec?' · '+B.donor.exec:''):'No donor ROM chosen';
+ const t=$('#brows');t.textContent='';
+ for(const p of B.rows){
+  const x=p.d.x||(p.d.x=extract(B.donor.rom,p.d)),bad=x.outw.length>0,unc=x.rel.filter(q=>q[1]==='uncertain').length,tr=document.createElement('tr'),c=document.createElement('td'),cb=document.createElement('input');
+  cb.type='checkbox';cb.checked=B.sel.has(p.t.off);cb.disabled=bad;cb.onchange=()=>{cb.checked?B.sel.add(p.t.off):B.sel.delete(p.t.off);bigView()};c.append(cb);tr.append(c);
+  const td=(v,k)=>{const d=document.createElement('td');d.textContent=v;if(k)d.className=k;tr.append(d)},cv=vcmp(p.t.id,p.d.id);
+  td(p.name,'n');td(p.t.id);td(p.d.id);td(((p.t.end-p.t.start)/1024).toFixed(1)+' → '+((p.d.end-p.d.start)/1024).toFixed(1)+' KB');td(p.t.pri);
+  td(bad?'Calls fixed addresses elsewhere in its own ROM — can’t be moved':(cv>0?'Newer':cv<0?'Older':'Same version')+' · '+x.rel.length+' relocations'+(unc?' ('+unc+' uncertain)':''));
+  t.append(tr)}
+ $('#bempty').hidden=B.rows.length>0;$('#bempty').textContent=B.elig?'':B.donor?'No modules in common with the donor ROM.':'Choose a donor ROM to see which modules can be replaced.';
+ const r=B.res;
+ $('#bgs').textContent=r?(r.rep.length?r.rep.map(q=>q.name+': '+q.old.id+' → '+q.nw.id+' at '+hx(q.at,6)+' (priority '+q.old.pri+' kept)'+(q.unc?' — '+q.unc+' uncertain relocations':'')).join('\n')+'\n':'No modules selected — the extension bank will be empty.\n')+'Extension bank: '+(r.used/1024).toFixed(1)+' KB of 512 KB used. Scantable patched at '+hx(r.at,5)+'; both banks re-checksummed.':'';
+ ['#o1','#o2','#o3','#o4'].forEach(i=>$(i).disabled=!r)}
+async function loadDonor(list){
+ const fl=[...list];if(!fl.length)return;toast('');
+ if(fl.length>2)return toast('Choose one .rom file, or one or two .bin files.');
+ const k=await Promise.all(fl.map(kind));
+ if(k.some(x=>x!=='rom'&&x!=='bin'))return toast('The donor must be a .rom, or one or two .bin files.');
+ const d=await Promise.all(fl.map(rd));let rom;
+ if(k.includes('rom')){if(fl.length!==1)return toast('A .rom must be chosen on its own.');rom=d[0].d}
+ else if(d.length===2){if(d[0].d.length!==d[1].d.length)return toast('The two .bin files must be exactly the same size.');const A=join(d[0].d,d[1].d),C=join(d[1].d,d[0].d);rom=form(A)==='rom'?A:C}
+ else rom=swap(d[0].d);
+ rom=trim(rom);
+ if(form(rom)!=='rom'||rom.length!==KB)return toast('That doesn’t look like a 512 KB Kickstart image (check the .bin pair, or choose the .rom).');
+ const mods=scan2(rom),ex=mods.find(m=>m.name==='exec.library');
+ B.donor={n:d.map(x=>x.n).join(' + '),rom,mods,exec:ex?ex.id:''};B.sel=new Set();bigView()}
+$('#pick2').onchange=e=>{loadDonor(e.target.files);e.target.value=''};
+function bigOut(kind){
+ if(!B.res)return;const rom=new Uint8Array(2*BANK);rom.set(B.res.main,0);rom.set(B.res.ext,BANK);
+ const st=stem((S.hi||S.f[0]).n).replace(/[_-](hi|lo|high|low)$/i,'')+'_1mb',F=[];
+ if(kind==='rom')F.push({name:st+'.rom',data:rom});
+ else if(kind==='bin')F.push({name:st+'.bin',data:swap(rom)});
+ else if(kind==='hl'){const[h,l]=split(rom);F.push({name:st+'_hi.bin',data:h},{name:st+'_lo.bin',data:l})}
+ else F.push({name:st+'_ext.rom',data:B.res.ext});
+ save(F,st)}
+$('#o1').onclick=()=>bigOut('rom');$('#o2').onclick=()=>bigOut('bin');$('#o3').onclick=()=>bigOut('hl');$('#o4').onclick=()=>bigOut('ext');
+render();
+</script></body></html>
