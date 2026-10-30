@@ -54,6 +54,7 @@ button.primary{background:var(--acc);border-color:var(--acc);color:#fff}button.p
 .xpad{padding:14px}.xpad p{margin:0 0 10px;color:var(--mut);font-size:12.5px}.xrow{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 #xrows tr{cursor:default}#xs{font-size:12.5px;margin-top:10px;color:var(--mut)}
 td button{padding:3px 9px;font-size:12px}
+body:not(.admin) [data-t=kn],body:not(.admin) #kn{display:none!important}
 #sh{cursor:pointer}#zf{margin-top:6px;font-size:11.5px;color:var(--mut);font-family:ui-monospace,Consolas,monospace;white-space:pre-line;overflow-wrap:anywhere;max-width:100%}
 .badge.new{background:var(--acc);margin-left:0;margin-right:6px}
 #kn .kbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-top:1px solid var(--line)}#kn .kbar span{color:var(--mut);font-size:12.5px}#krows tr{cursor:default}#krows td{max-width:240px;overflow:hidden;text-overflow:ellipsis}#krows td.s{font-family:ui-monospace,Consolas,monospace;font-size:11.5px}
@@ -208,6 +209,8 @@ function trim(d){ // strip a mirrored copy or blank padding (e.g. 256 KB of ROM 
  return d}
 function has(d,t){const p=[...t].map(c=>c.charCodeAt(0)),e=d.length-p.length;
  for(let i=0;i<=e;i++){if(d[i]!==p[0])continue;let j=1;while(j<p.length&&d[i+j]===p[j])j++;if(j===p.length)return true}return false}
+// Admin mode (index.html?mode=admin) shows the Known Kickstarts tab and the "not in the list" warning.
+const ADMIN=/[?&#]mode=admin\b|#admin\b/.test(location.search+location.hash);if(ADMIN)document.body.classList.add('admin');
 let S={mode:'',f:[],rules:[],flip:false,a:null,x:null,hi:null,lo:null,kf:null,note:'',off:0,ext:[],keepPri:true,out:null,sz:0,res:null,eligI:'',eligX:''};
 S.base=parseRules(LIST);S.csv=[];S.rules=S.base;
 // <engine>
@@ -428,7 +431,7 @@ function warns(){
   else if(S.mode==='bin'&&S.f.length===1)w.push('Not a complete Kickstart. If this is one half of a split pair, add the other .bin.');
   else w.push(S.mode==='bin'?'No valid Kickstart found when combining these files — try “Swap HI/LO”.':'No standard Kickstart header found.')}
  else if(!a.cs.ok&&!a.ext)w.push('Header found, but the checksum is not valid (patched or non-standard ROM, or a damaged file).');
- if(a.hdr&&!a.m&&a.ver)w.push('This version isn’t in the list. Add it to known-kickstarts.csv (or drop your own list on the page).');
+ if(ADMIN&&a.hdr&&!a.m&&a.ver)w.push('This version isn’t in the list. Add it to known-kickstarts.csv (or drop your own list on the page).');
  return w}
 
 // ---- exports ----
@@ -677,8 +680,9 @@ function knownRows(){
   else{const k=m.ver+'.'+(m.rev<0?'*':m.rev);if(haveVer.has(k))continue;R.push({r:[m.name,'v'+k,m.mach,m.bus||'','','','','Built-in list'],isNew:mark})}}
  for(const r of PEND)R.push({r,isNew:true});
  return R}
+const verNum=v=>{const m=/(\d+)\.(\d+|\*)/.exec(v||'');return m?[+m[1],m[2]==='*'?1e9:+m[2]]:[1e9,0]};
 function knownView(){
- const R=knownRows(),t=$('#krows');t.textContent='';
+ const R=knownRows().map((x,i)=>({...x,i,v:verNum(x.r[1]),e:/Extended ROM/i.test(x.r[0])?1:0})).sort((a,b)=>a.e-b.e||a.v[0]-b.v[0]||a.v[1]-b.v[1]||a.r[0].localeCompare(b.r[0])||a.r[2].localeCompare(b.r[2])||a.i-b.i),t=$('#krows');t.textContent='';
  for(const x of R){const tr=document.createElement('tr'),r=x.r;
   const td=(v,k,f)=>{const d=document.createElement('td');if(k)d.className=k;if(f)f(d);else{d.textContent=v;d.title=v}tr.append(d)};
   td('','n',d=>{if(x.isNew){const b=document.createElement('span');b.className='badge new';b.textContent='New';d.append(b)}d.append(r[0])});
