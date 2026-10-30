@@ -1,4 +1,4 @@
-﻿Name,Version,Platform,Bus width,Size (KB),SHA-1,Checksum (stored longword),Source / notes
+﻿Version,Release,Platform,Bus width,Size (KB),SHA-1,Checksum (stored longword),Source / notes
 Kickstart 1.2,v33.180,"A500, A1000, A2000",16,256,11f9e62cf299f72184835b7b2a70a16333fc0d88,,SHA-1 from FS-UAE docs (fs-uae.net/docs/kickstart-roms); version/platform as listed there
 Kickstart 1.3,v34.5,"A500, A1000, A2000, CDTV",16,256,891e9a547772fe0c6c19b610baf8bc4ea7fcb785,,SHA-1 from FS-UAE docs (fs-uae.net/docs/kickstart-roms); version/platform as listed there
 Kickstart 2.04,v37.175,A500+,16,512,c5839f5cb98a7a8947065c3ed2f14f5f42e334a1,,"SHA-1 from FS-UAE docs (fs-uae.net/docs/kickstart-roms); version/platform as listed there; app list also gives A2000, A3000 for this version (unverified)"

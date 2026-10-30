@@ -114,7 +114,7 @@ body:not(.admin) [data-t=kn],body:not(.admin) #kn{display:none!important}
   <pre id="hx">Load a ROM or BIN image to inspect it.</pre>
  </div>
  <div id="kn" hidden>
-  <div class="scroll"><table><thead><tr><th>Name</th><th>Version</th><th>Platform</th><th>Bus</th><th>Size</th><th>SHA-1</th><th>Notes</th></tr></thead><tbody id="krows"></tbody></table></div>
+  <div class="scroll"><table><thead><tr><th>Version</th><th>Release</th><th>Platform</th><th>Bus</th><th>Size</th><th>SHA-1</th><th>Notes</th></tr></thead><tbody id="krows"></tbody></table></div>
   <div class="kbar"><button id="kdl">Download CSV</button><button id="kreset" title="Forget the built-in list and remembered ROMs, then re-read known-kickstarts.csv">Use CSV only (reload)</button><span id="kinfo"></span></div>
  </div>
  <div id="xp" hidden><div class="xpad">
@@ -491,7 +491,6 @@ function render(){
  const set=(id,t)=>$(id).textContent=t;
  if(!a){['#v','#rl','#ex','#p','#c','#sh','#cp'].forEach(i=>set(i,'-'));set('#zf','');$('#note').textContent='';$('#xr').hidden=$('#xrd').hidden=true;S.res=null;S.eligI=S.eligX='';outputs();mods();hex();extView();knownView();return}
  const ex=a.mods.find(m=>m.name==='exec.library'),maj=a.ver?a.ver[0]:0;
- const KSV={31:'Kickstart 1.1 (NTSC)',32:'Kickstart 1.1 (PAL)',33:'Kickstart 1.2',34:'Kickstart 1.3',36:'Kickstart 1.4 / 2.0beta',37:'Kickstart 2.0x',39:'Kickstart 3.0',40:'Kickstart 3.1',46:'Kickstart 3.1.4',47:'Kickstart 3.2'};
  set('#v',a.f==='enc'?'Encrypted ROM':a.ext?(a.m?a.m.name:'Extended ROM (not in list)'):!a.hdr?'Not a Kickstart image':KSV[maj]||'Unrecognised release '+maj);
  set('#rl',a.f==='enc'||!a.ver?'-':a.ver.join('.'));
  set('#ex',ex&&ex.id?ex.id.replace(/^exec\s+/i,''):'-');
@@ -595,7 +594,7 @@ function parseCSV(t){t=t.replace(/^\uFEFF/,'');const l=t.split('\n')[0],D=l.incl
   else if(c==='\n'||c==='\r'){if(c==='\r'&&t[i+1]==='\n')i++;r.push(f);f='';R.push(r);r=[]}else f+=c}
  if(f||r.length){r.push(f);R.push(r)}return R}
 // CSV columns: Name, Version, Platform, Bus width, SHA-1 (others ignored). A SHA-1 gives an exact match; otherwise a version like v34.5 or v47.*
-function csvRules(t){const R=parseCSV(t);if(!R.length)return[];const h=R[0].map(x=>x.trim().toLowerCase()),ix=k=>h.findIndex(x=>x.startsWith(k)),n=ix('name'),v=ix('version'),p=ix('platform'),b=ix('bus'),s=ix('sha');
+function csvRules(t){const R=parseCSV(t);if(!R.length)return[];const h=R[0].map(x=>x.trim().toLowerCase()),ix=k=>h.findIndex(x=>x.startsWith(k)),rl=h.findIndex(x=>x.startsWith('release')),n=rl>=0?ix('version'):ix('name'),v=rl>=0?rl:ix('version'),p=ix('platform'),b=ix('bus'),s=ix('sha');
  return R.slice(1).map(r=>{const g=i=>i<0?'':(r[i]||'').trim(),sha=g(s).toLowerCase(),ver=/^[vr]?(\d+)\.(\d+|\*)$/i.exec(g(v)),x={name:g(n),mach:g(p),bus:+g(b)||0};
   if(!x.name)return null;if(/^[0-9a-f]{40}$/.test(sha)){x.sha=sha;return x}
   if(ver){x.ver=+ver[1];x.rev=ver[2]==='*'?-1:+ver[2];return x}return null}).filter(Boolean)}
@@ -652,13 +651,14 @@ async function save(F,st){
  else for(const f of F){const u=URL.createObjectURL(new Blob([f.data])),a=document.createElement('a');a.href=u;a.download=f.name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000)}}
 const stem=n=>n.replace(/\.[^.]*$/,'');
 // ---- known list / unknown ROMs ----
-const COLS=['Name','Version','Platform','Bus width','Size (KB)','SHA-1','Checksum (stored longword)','Source / notes'];
+const KSV={31:'Kickstart 1.1 (NTSC)',32:'Kickstart 1.1 (PAL)',33:'Kickstart 1.2',34:'Kickstart 1.3',36:'Kickstart 1.4 / 2.0beta',37:'Kickstart 2.0x',39:'Kickstart 3.0',40:'Kickstart 3.1',46:'Kickstart 3.1.4',47:'Kickstart 3.2'};
+const COLS=['Version','Release','Platform','Bus width','Size (KB)','SHA-1','Checksum (stored longword)','Source / notes'];
 let PEND=[];try{PEND=JSON.parse(localStorage.getItem('ksNew')||'[]')}catch(e){}
 const csvq=v=>/[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;
 function mkRow(a,fname,pre){ // [name, version, platform, bus, size KB, sha, checksum, notes]
  const pl=plat(a),inf=/inferred/.test(pl.m||''),mach=(pl.m||'').replace(' (inferred)',''),b0=a.mods.length?a.mods[0].base:0;
  const ex=a.mods.find(m=>m.name==='exec.library'),rel=a.hd&&a.hd.rel;
- const name=a.ext?'Extended ROM':a.m&&a.m.name?a.m.name:rel?'Kickstart '+rel.replace(/\s*ROM$/i,''):'Kickstart',ver=a.ver?'v'+a.ver.join('.'):'';
+ const name=a.ext?(a.m&&a.m.name?a.m.name:'Extended ROM'):a.ver?KSV[a.ver[0]]||'Kickstart (release '+a.ver[0]+')':'Kickstart',ver=a.ver?'v'+a.ver.join('.'):'';
  const notes=[pre+' '+(fname||'a loaded file')+(a.cs.ok?'':' (checksum not valid)'),inf?'platform inferred from modules':'',ex?ex.id:'',b0&&b0!==BASE?'linked at '+hx(b0,6):'',a.mods.length+' modules',a.hd&&a.hd.cp||''].filter(Boolean).join('; ');
  return[name,ver,mach,pl.bus||'',String(a.rom.length/1024),a.sha,a.cs.st!==undefined?hx(a.cs.st,8):'',notes]}
 function noteUnknown(a,fname){ // remember ROMs that aren't in the list, so they can be added to the CSV later
@@ -671,7 +671,7 @@ async function copyText(t){
  try{const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.append(a);a.select();const ok=document.execCommand('copy');a.remove();return ok}catch(e){return false}}
 $('#sh').onclick=async()=>{if(!S.a||!S.a.hdr)return;const t=mkRow(S.a,S.kf&&S.kf.n,'From').map(csvq).join(',');
  toast(await copyText(t)?'Copied a CSV line for this ROM. Paste it at the bottom of known-kickstarts.csv.':'Couldn’t reach the clipboard here.')};
-const COLIX=h=>{const H=h.map(x=>x.trim().toLowerCase()),at=k=>H.findIndex(x=>x.startsWith(k));return[at('name'),at('version'),at('platform'),at('bus'),at('size'),at('sha'),at('checksum'),at('source')]};
+const COLIX=h=>{const H=h.map(x=>x.trim().toLowerCase()),at=k=>H.findIndex(x=>x.startsWith(k)),rl=at('release');return[rl>=0?at('version'):at('name'),rl>=0?rl:at('version'),at('platform'),at('bus'),at('size'),at('sha'),at('checksum'),at('sour')]};
 const verKey=v=>{const m=/(\d+)\.(\d+|\*)/.exec(v||'');return m?m[1]+'.'+m[2]:''};
 function knownRows(){
  const R=[],csvR=[];
