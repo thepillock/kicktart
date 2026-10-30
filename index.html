@@ -491,7 +491,7 @@ function render(){
  const set=(id,t)=>$(id).textContent=t;
  if(!a){['#v','#rl','#ex','#p','#c','#sh','#cp'].forEach(i=>set(i,'-'));set('#zf','');$('#note').textContent='';$('#xr').hidden=$('#xrd').hidden=true;S.res=null;S.eligI=S.eligX='';outputs();mods();hex();extView();knownView();return}
  const ex=a.mods.find(m=>m.name==='exec.library'),maj=a.ver?a.ver[0]:0;
- set('#v',a.f==='enc'?'Encrypted ROM':a.ext?(a.m?a.m.name:'Extended ROM (not in list)'):!a.hdr?'Not a Kickstart image':KSV[maj]||'Unrecognised release '+maj);
+ set('#v',a.f==='enc'?'Encrypted ROM':a.ext?(a.m?a.m.name:'Extended ROM (not in list)'):!a.hdr?'Not a Kickstart image':a.known&&a.m.name?a.m.name:KSV[maj]||'Unrecognised release '+maj);
  set('#rl',a.f==='enc'||!a.ver?'-':a.ver.join('.'));
  set('#ex',ex&&ex.id?ex.id.replace(/^exec\s+/i,''):'-');
  set('#cp',a.hd&&a.hd.cp||'-');
