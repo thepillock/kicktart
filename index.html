@@ -312,7 +312,7 @@ function parseHunk(d){
    if(t===0x3E9||t===0x3EA){const c=(L(p)&0x3FFFFFFF)*4;p+=4;if(c>sizes[i]||p+c>d.length)throw new Error('damaged code hunk');h.data.set(d.subarray(p,p+c));p+=c}
    else if(t===0x3EB){if(sizes[i])throw new Error('it has a BSS (RAM) hunk, which can’t live in a ROM');p+=4}
    else if(t===0x3EC){for(;;){const c=L(p);p+=4;if(!c)break;const tg=L(p);p+=4;if(tg>=n||p+c*4>d.length)throw new Error('damaged relocation table');for(let k=0;k<c;k++){h.rel.push([L(p),tg]);p+=4}}}
-   else if(t===0x3F7){let q=p;for(;;){const c=d[q]<<8|d[q+1],tg=d[q+2]<<8|d[q+3];q+=4;if(!c)break;if(tg>=n)throw new Error('damaged relocation table');for(let k=0;k<c;k++){h.rel.push([d[q]<<8|d[q+1],tg]);q+=2}}p=(q+3)&~3}
+   else if(t===0x3F7||t===0x3FC){let q=p;for(;;){const c=d[q]<<8|d[q+1];q+=2;if(!c)break;const tg=d[q]<<8|d[q+1];q+=2;if(tg>=n)throw new Error('damaged relocation table');for(let k=0;k<c;k++){h.rel.push([d[q]<<8|d[q+1],tg]);q+=2}}p=(q+3)&~3}
    else if(t===0x3F0){for(;;){const c=L(p)&0xFFFFFF;p+=4;if(!c)break;p+=c*4+4}}
    else if(t===0x3F1||t===0x3E8){p+=4+(L(p)&0xFFFFFF)*4}
    else if(t===0x3F2)break;
@@ -615,7 +615,7 @@ const PRE=[
 {id:'wb',name:'Workbench and icon libraries',desc:'3.1.4 and 3.2 ROMs only carry tiny placeholder stubs of workbench.library and icon.library (about 100 bytes each) and load the real ones from disk. This puts the real ones in the ROM, which needs the 1 MB image.',need:['workbench.library','icon.library'],opt:[],
  src:'Use the two files from LIBS: on your own AmigaOS 3.2 install disks.',
  chk:a=>a.ver&&a.ver[0]>=46?'':'Only needed with 3.1.4 and later ROMs; older ROMs already contain both.'},
-{id:'cf',name:'CompactFlash boot (PCMCIA)',desc:'Adds compactflash.device and ptable.library, plus fat95 and the automount module if you have them, so a CF card in the PCMCIA slot can be seen and booted from before any disk driver loads.',need:['compactflash.device','ptable.library'],opt:['fat95','compactflash.automount','compactflash.autoboot'],
+{id:'cf',name:'CompactFlash boot (PCMCIA)',desc:'Adds compactflash.device and ptable.library, plus fat95 and the automount module if you have them, so a CF card in the PCMCIA slot can be seen and booted from before any disk driver loads.',need:['compactflash.device','ptable.library'],opt:['fat95','compactflash.automount'],
  src:'Use the ROM-resident files from the CompactFlash driver (cfd) package and fat95.',
  chk:a=>/A600|A1200/.test(plat(a).m||'')?'':'Only for A600 and A1200 ROMs, the machines with a PCMCIA slot.',
  warn:a=>{const v=a.ver||[0,0],ok=(v[0]===47&&v[1]===115)||(v[0]===40&&v[1]===68)||(v[0]===37&&v[1]===350);return ok?'':'The project this is modelled on covers 3.2.3, 3.1 (40.68) and 2.05 (37.350) only. This ROM hasn’t been tried.'}},
