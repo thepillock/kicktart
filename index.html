@@ -481,7 +481,7 @@ function warns(){
 const sz=n=>n>=1048576?n/1048576+' MB':n/1024+' KB';
 const baseName=()=>stem((S.kf||S.f[0]).n).replace(/[_-](hi|lo|high|low)$/i,'');
 const isCD=()=>S.mode==='cd32bin'||S.mode==='rom2';
-const work=()=>{const r=S.res;return r&&r.ok?(r.ext?cat(r.main,r.ext):r.main):S.a.rom};
+const work=()=>{const r=S.res;return r&&r.ok?(r.ext?cat(r.ext,r.main):r.main):S.a.rom};
 function fillSizes(per){
  const sel=$('#sz'),opts=[131072,262144,524288,1048576,2097152].filter(v=>v>=per);
  const want=opts.includes(S.sz)?S.sz:(S.a&&S.a.ext?per:Math.max(per,KB));
@@ -503,7 +503,7 @@ function outputs(){
  const size=ok&&!cd?+$('#sz').value:0;
  $('#plan_rom').textContent=!ok?'':cd?base+'_kickstart.rom and '+base+'_extended.rom':base+sfx+'.rom · '+sz(W.length)+' (normal ROM byte order, for emulators)';
  $('#plan_bin').textContent=!ok?'':cd?base+'_cd32.bin · 1 MB, Extended ROM and Kickstart each split HI/LO':sp?base+sfx+'_hi.bin and _lo.bin · '+sz(size)+' each':base+sfx+'.bin · '+sz(Math.max(size,W.length))+' (byte-swapped for an EPROM)';
- $('#plan').textContent=!a?'':S.res&&!S.res.ok?'Fix the problems in the Replace / Add Modules tab to export.':r&&r.rep.length?'Includes '+r.rep.length+' module change'+(r.rep.length>1?'s':'')+(r.ext?' · output is a 1 MB image':' · output is still '+sz(W.length)):'';
+ $('#plan').textContent=!a?'':S.res&&!S.res.ok?'Fix the problems in the Enhancements tab to export.':r&&r.rep.length?'Includes '+r.rep.length+' module change'+(r.rep.length>1?'s':'')+(r.ext?' · output is a 1 MB image':' · output is still '+sz(W.length)):'';
  $('#flip').hidden=!(S.mode==='bin'&&S.f.length===2)}
 function exp(kind){
  const a=S.a;if(!a)return;const base=baseName(),r=S.res,sfx=r&&r.ok&&r.rep.length?(r.ext?'_1mb':'_mod'):'';
