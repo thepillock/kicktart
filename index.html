@@ -86,7 +86,8 @@ body:not(.admin) [data-t=kn],body:not(.admin) #kn{display:none!important}
   </div>
   <div id="e_bin" class="epane" hidden>
    <div class="seg" id="optrow"><label><input type="radio" name="om" value="single" checked> Single .bin</label><label><input type="radio" name="om" value="split"> Split HI / LO .bin</label></div>
-   <label id="szrow">EPROM size per file <select id="sz"></select><small>Data is repeated to fill the chip.</small></label>
+   <div id="bininfo" class="plan"></div>
+   <label id="szrow">EPROM size <select id="sz"></select><small>A bigger chip repeats the data to fill it. A smaller chip splits the image into several files (_pt1, _pt2, …).</small></label>
    <div class="plan" id="plan_bin"></div>
    <button id="b1" class="primary" disabled>Export .bin</button>
   </div>
@@ -483,10 +484,13 @@ const baseName=()=>stem((S.kf||S.f[0]).n).replace(/[_-](hi|lo|high|low)$/i,'');
 const isCD=()=>S.mode==='cd32bin'||S.mode==='rom2';
 const work=()=>{const r=S.res;return r&&r.ok?(r.ext?cat(r.ext,r.main):r.main):S.a.rom};
 function fillSizes(per){
- const sel=$('#sz'),opts=[131072,262144,524288,1048576,2097152].filter(v=>v>=per);
- const want=opts.includes(S.sz)?S.sz:(S.a&&S.a.ext?per:Math.max(per,KB));
+ const sel=$('#sz'),opts=[262144,524288,1048576,2097152];
+ const want=opts.includes(S.sz)?S.sz:Math.min(2097152,Math.max(per,KB>per&&!(S.a&&S.a.ext)?KB:per));
  sel.textContent='';for(const v of opts){const o=document.createElement('option');o.value=v;o.textContent=sz(v);sel.append(o)}
  sel.value=String(opts.includes(want)?want:opts[0])}
+const fit=(d,size)=>{if(d.length>=size)return d;if(size%d.length===0)return rep(d,size);const r=new Uint8Array(size).fill(255);r.set(d);return r};
+const chunks=(d,size)=>{if(d.length<=size)return[fit(d,size)];const o=[];for(let i=0;i<d.length;i+=size)o.push(fit(d.subarray(i,i+size),size));return o};
+const partName=(base,n,i)=>n>1?base+'_pt'+(i+1)+'.bin':base+'.bin';
 const defSplit=a=>a.ext||plat(a).bus===32;
 function etab(e){document.querySelectorAll('.etab').forEach(b=>b.classList.toggle('on',b.dataset.e===e));$('#e_rom').hidden=e!=='rom';$('#e_bin').hidden=e!=='bin'}
 document.querySelectorAll('.etab').forEach(b=>b.onclick=()=>etab(b.dataset.e));
@@ -499,10 +503,11 @@ function outputs(){
  if(ok&&!cd){document.querySelector('input[name=om][value='+(sp?'split':'single')+']').checked=true;fillSizes(Math.floor(W.length/(sp?2:1)))}
  $('#b1').disabled=!ok||(cd?!cdok:W.length%(sp?4:2));
  $('#b3').textContent=cd?'Export Kickstart + Extended .rom':'Export .rom file';
- $('#b1').textContent=cd?'Export CD32 .bin':sp?'Export HI + LO .bin':'Export .bin';
- const size=ok&&!cd?+$('#sz').value:0;
+ const size=ok&&!cd?+$('#sz').value:0,per=ok&&!cd?W.length/(sp?2:1):0,np=size?Math.ceil(per/size):1;
+ $('#b1').textContent=cd?'Export CD32 .bin':sp?'Export HI + LO .bin'+(np>1?' ('+np*2+' files)':''):np>1?'Export '+np+' .bin files':'Export .bin';
+ $('#bininfo').textContent=ok&&!cd?'Image size: '+sz(W.length)+(r&&r.ok&&r.ext?' (with the extended area)':'')+(sp?' · '+sz(per)+' in each of HI and LO':''):'';
  $('#plan_rom').textContent=!ok?'':cd?base+'_kickstart.rom and '+base+'_extended.rom':base+sfx+'.rom · '+sz(W.length)+' (normal ROM byte order, for emulators)';
- $('#plan_bin').textContent=!ok?'':cd?base+'_cd32.bin · 1 MB, Extended ROM and Kickstart each split HI/LO':sp?base+sfx+'_hi.bin and _lo.bin · '+sz(size)+' each':base+sfx+'.bin · '+sz(Math.max(size,W.length))+' (byte-swapped for an EPROM)';
+ $('#plan_bin').textContent=!ok?'':cd?base+'_cd32.bin · 1 MB, Extended ROM and Kickstart each split HI/LO':(()=>{const nm=(b)=>np>1?b+'_pt1.bin … '+b+'_pt'+np+'.bin':b+'.bin',tail=' · '+sz(size)+(np>1?' each':'')+(per<size?' (image repeated to fill the chip)':'')+(np>1?' (image split into '+np+' parts)':'');return sp?(np>1?np*2+' files: ':'')+nm(base+sfx+'_hi')+' and '+nm(base+sfx+'_lo')+tail:(np>1?np+' files: ':'')+nm(base+sfx)+tail+' (byte-swapped for an EPROM)'})()
  $('#plan').textContent=!a?'':S.res&&!S.res.ok?'Fix the problems in the Enhancements tab to export.':r&&r.rep.length?'Includes '+r.rep.length+' module change'+(r.rep.length>1?'s':'')+(r.ext?' · output is a 1 MB image':' · output is still '+sz(W.length)):'';
  $('#flip').hidden=!(S.mode==='bin'&&S.f.length===2)}
 function exp(kind){
@@ -511,9 +516,10 @@ function exp(kind){
   if(kind==='rom'){save([{name:base+'_kickstart.rom',data:a.rom},{name:base+'_extended.rom',data:S.x.rom}],base);return}
   const[kh,kl]=split(a.rom),[eh,el]=split(S.x.rom);save([{name:base+'_cd32.bin',data:cat(eh,kh,el,kl)}],base);return}
  const W=work(),size=+$('#sz').value||W.length;
+ const outs=(d,nm)=>{const c=chunks(d,size);return c.map((x,i)=>({name:partName(nm,c.length,i),data:x}))};
  if(kind==='rom')save([{name:base+sfx+'.rom',data:W}],base);
- else if(kind==='single')save([{name:base+sfx+'.bin',data:rep(swap(W),Math.max(size,W.length))}],base);
- else{const[h,l]=split(W);save([{name:base+sfx+'_hi.bin',data:rep(h,size)},{name:base+sfx+'_lo.bin',data:rep(l,size)}],base)}}
+ else if(kind==='single')save(outs(swap(W),base+sfx),base);
+ else{const[h,l]=split(W);save(outs(h,base+sfx+'_hi').concat(outs(l,base+sfx+'_lo')),base)}}
 $('#b3').onclick=()=>exp('rom');
 $('#b1').onclick=()=>exp(document.querySelector('input[name=om]:checked').value);
 document.querySelectorAll('input[name=om]').forEach(r=>r.onchange=()=>{S.out=r.value;S.sz=0;outputs()});
