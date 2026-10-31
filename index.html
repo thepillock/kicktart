@@ -51,7 +51,7 @@ button.primary{background:var(--acc);border-color:var(--acc);color:#fff}button.p
 #szrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .btnlike{display:inline-block;font-weight:600;background:var(--btn);border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer}.btnlike:hover{border-color:var(--acc)}.btnlike.dis{opacity:.45;pointer-events:none}
 #pick2{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
-.xpad{padding:14px}.xpad p{margin:0 0 10px;color:var(--mut);font-size:12.5px}.xrow{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.pc{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 10px;background:var(--row)}.pc.dis{opacity:.65}.pc h4{margin:0;font-size:14px}.pc h4 label{display:flex;gap:8px;align-items:center;cursor:pointer}.pc ul{margin:6px 0;padding:0;list-style:none;font-size:12.5px}.pc li.m{color:var(--warn)}.pc li.g{color:var(--ok)}.xpad details{margin:4px 0 10px}.xpad summary{cursor:pointer;font-weight:600;margin-bottom:8px}.xpad{padding:14px}.xpad p{margin:0 0 10px;color:var(--mut);font-size:12.5px}.xrow{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 #xrows tr{cursor:default}#xs{font-size:12.5px;margin-top:10px;color:var(--mut)}
 td button{padding:3px 9px;font-size:12px}
 body:not(.admin) [data-t=kn],body:not(.admin) #kn{display:none!important}
@@ -98,7 +98,7 @@ body:not(.admin) [data-t=kn],body:not(.admin) #kn{display:none!important}
 <div class="tabs">
  <button class="tab on" data-t="mod">Modules</button>
  <button class="tab" data-t="hex">Hex &amp; Header</button>
- <button class="tab" data-t="ext">Replace / Add Modules</button>
+ <button class="tab" data-t="ext">Enhancements</button>
  <button class="tab" data-t="kn">Known Kickstarts</button>
 </div>
 <div class="panel">
@@ -118,9 +118,13 @@ body:not(.admin) [data-t=kn],body:not(.admin) #kn{display:none!important}
   <div class="kbar"><button id="kdl">Download CSV</button><button id="kreset" title="Forget the built-in list and remembered ROMs, then re-read known-kickstarts.csv">Use CSV only (reload)</button><span id="kinfo"></span></div>
  </div>
  <div id="xp" hidden><div class="xpad">
-  <p>Add module files to replace modules in this ROM or add new ones. A replacement with the same name as an existing module overwrites it in place when it fits in the old space, and the ROM keeps its size. Anything that doesn’t fit, and any new module such as icon.library, workbench.library or ehide.device, goes in a second 512 KB area. That makes a 1 MB image: one 27C800 for A500+/A600, or two 27C400 (HI/LO) for the A1200. The second area works on Hyperion Kickstarts (3.1.4, 3.2), 3.1 (40.68) and 2.05 (37.350). On the older ones the scan table has no room to grow, so the scan of $F00000–$F80000 (CDTV-style expansion ROMs) is dropped to make room. Use module files saved from the Modules tab, or Amiga executables that contain a resident tag. Not tested on real hardware — try the result in an emulator first.</p>
+  <p>Tick the changes you want. Each one asks for the files it needs, taken from your own copies of the software, and anything beyond 512 KB goes in a second 512 KB area at $E00000. That makes a 1 MB image: one 27C800 for A500+/A600, or two 27C400 (HI/LO) for the A1200. The second area works on Hyperion Kickstarts (3.1.4, 3.2), 3.1 (40.68) and 2.05 (37.350); on the older ones the scan table has no room to grow, so the scan of $F00000–$F80000 (CDTV-style expansion ROMs) is dropped to make room. Not tested on real hardware — try the result in an emulator first.</p>
   <div class="note" id="xm" style="margin:0 0 10px" hidden></div>
+  <div id="xpre"></div>
+  <details id="xadv"><summary>Advanced: replace or add any module</summary>
+  <p>A replacement with the same name as an existing module overwrites it in place when it fits in the old space, and the ROM keeps its size. Anything that doesn’t fit, and any new module, goes in the extended area. Use module files saved from the Modules tab, or Amiga executables that contain a resident tag.</p>
   <div class="xrow"><label class="btnlike" id="xlab" for="pick2">Add module files…</label><label><input type="checkbox" id="xkeep" checked> Keep the priority of a replaced module</label></div>
+  </details>
   <div class="scroll"><table><thead><tr><th>Module</th><th>Version</th><th>Size</th><th>What happens</th><th></th></tr></thead><tbody id="xrows"></tbody></table><div class="empty" id="xempty"></div></div>
   <div id="xs"></div>
  </div></div>
@@ -248,7 +252,7 @@ function has(d,t){const p=[...t].map(c=>c.charCodeAt(0)),e=d.length-p.length;
  for(let i=0;i<=e;i++){if(d[i]!==p[0])continue;let j=1;while(j<p.length&&d[i+j]===p[j])j++;if(j===p.length)return true}return false}
 // Admin mode (index.html?mode=admin) shows the Known Kickstarts tab and the "not in the list" warning.
 const ADMIN=/[?&#]mode=admin\b|#admin\b/.test(location.search+location.hash);if(ADMIN)document.body.classList.add('admin');
-let S={mode:'',f:[],rules:[],flip:false,a:null,x:null,hi:null,lo:null,kf:null,note:'',off:0,ext:[],keepPri:true,out:null,sz:0,res:null,eligI:'',eligX:''};
+let S={mode:'',f:[],rules:[],flip:false,a:null,x:null,hi:null,lo:null,kf:null,note:'',off:0,ext:[],pre:{},keepPri:true,out:null,sz:0,res:null,eligI:'',eligX:''};
 S.base=parseRules(LIST);S.csv=[];S.rules=S.base;
 // <engine>
 const BASE=0xF80000,XB=0xE00000,BANK=524288;
@@ -545,7 +549,7 @@ function render(){
  extCompute();outputs();mods();hex();extView();knownView()}
 const verOf=id=>{const m=/(\d+)\.(\d+)/.exec(id);return m?m[1]+'.'+m[2]:''};
 function dlMod(m){const h=toHunk(S.a.rom,m);if(h.err)return toast(h.err);
- const n=(m.name+(verOf(m.id)?'_'+verOf(m.id):'')).replace(/[^\w.-]+/g,'_');save([{name:n,data:h.data}],n);toast('Saved '+n+' ('+h.data.length.toLocaleString('en-US')+' bytes, '+h.rel+' relocations). Add it to another ROM from the Extended ROM tab.')}
+ const n=(m.name+(verOf(m.id)?'_'+verOf(m.id):'')).replace(/[^\w.-]+/g,'_');save([{name:n,data:h.data}],n);toast('Saved '+n+' ('+h.data.length.toLocaleString('en-US')+' bytes, '+h.rel+' relocations). Add it to another ROM from the Enhancements tab.')}
 function mods(){
  const t=$('#rows');t.textContent='';const m=S.a?S.a.mods:[];
  $('#empty').hidden=m.length>0;if(S.a&&!m.length)$('#empty').textContent='No resident modules found in this image.';
@@ -590,11 +594,11 @@ function extCompute(){
  if(!S.a||!S.ext.length)return;
  S.res=buildMods(S.a.rom,S.a.mods,S.ext,S.keepPri,S.eligI,S.eligX)}
 function extView(){
- const t=$('#xrows');t.textContent='';
+ preView();const t=$('#xrows');t.textContent='';
  const msg=S.eligI||(S.eligX?'The extended area isn’t available: '+S.eligX+'. Replacements that fit in the old module’s space still work.':'');
  $('#xm').textContent=msg;$('#xm').hidden=!msg;
  $('#xlab').classList.toggle('dis',!!S.eligI);$('#pick2').disabled=!!S.eligI;$('#xkeep').checked=S.keepPri;
- document.querySelector('[data-t=ext]').textContent='Replace / Add Modules'+(S.ext.length?' · '+S.ext.length:'');
+ document.querySelector('[data-t=ext]').textContent='Enhancements'+(S.ext.length?' · '+S.ext.length:'');
  const R=S.res?S.res.rep:[];
  S.ext.forEach((it,i)=>{
   const r=R[i]||{},old=r.old,tr=document.createElement('tr'),td=(v,k)=>{const d=document.createElement('td');d.textContent=v;if(k)d.className=k;tr.append(d)};
@@ -605,12 +609,55 @@ function extView(){
   const d=document.createElement('td'),b=document.createElement('button');b.textContent='Remove';b.onclick=()=>{S.ext.splice(i,1);render()};d.append(b);tr.append(d);t.append(tr)});
  $('#xempty').hidden=S.ext.length>0;$('#xempty').textContent=S.eligI?'':'No modules added yet.';
  const r=S.res;$('#xs').textContent=r&&r.ok?(r.ext?'Extended area: '+(r.used/1024).toFixed(1)+' KB of 512 KB used. The scan table is patched at '+hx(r.at,5)+' and both banks are re-checksummed, so the exports are now 1 MB.':'All changes fit in place. The ROM stays '+sz(S.a.rom.length)+' and its checksum is recomputed.'):''}
+
+// Fixed list of enhancements. Each one names the modules it needs; the user supplies the files.
+const PRE=[
+{id:'wb',name:'Workbench and icon libraries',desc:'3.1.4 and 3.2 ROMs only carry tiny placeholder stubs of workbench.library and icon.library (about 100 bytes each) and load the real ones from disk. This puts the real ones in the ROM, which needs the 1 MB image.',need:['workbench.library','icon.library'],opt:[],
+ src:'Use the two files from LIBS: on your own AmigaOS 3.2 install disks.',
+ chk:a=>a.ver&&a.ver[0]>=46?'':'Only needed with 3.1.4 and later ROMs; older ROMs already contain both.'},
+{id:'cf',name:'CompactFlash boot (PCMCIA)',desc:'Adds compactflash.device and ptable.library, plus fat95 and the automount module if you have them, so a CF card in the PCMCIA slot can be seen and booted from before any disk driver loads.',need:['compactflash.device','ptable.library'],opt:['fat95','compactflash.automount'],
+ src:'Use the ROM-resident files from the CompactFlash driver (cfd) package and fat95.',
+ chk:a=>/A600|A1200/.test(plat(a).m||'')?'':'Only for A600 and A1200 ROMs, the machines with a PCMCIA slot.',
+ warn:a=>{const v=a.ver||[0,0],ok=(v[0]===47&&v[1]===115)||(v[0]===40&&v[1]===68)||(v[0]===37&&v[1]===350);return ok?'':'The project this is modelled on covers 3.2.3, 3.1 (40.68) and 2.05 (37.350) only. This ROM hasn’t been tried.'}},
+{id:'eh',name:'ehide.device (TerribleFire accelerators)',desc:'Adds ehide.device so the accelerator’s IDE port can be used from ROM.',need:['ehide.device'],opt:[],
+ src:'Use the ehide.device file from the TerribleFire distribution. Check its notes on whether it runs instead of, or alongside, the stock scsi.device.',chk:()=>''}];
+const preHas=(p,x)=>S.ext.find(e=>e.pre===p.id&&e.tag.name.toLowerCase().startsWith(x));
+async function addPre(p,list){
+ let n=0;
+ for(const f of list){try{const it=loadModule(f.name,(await rd(f)).d),nm=it.tag.name.toLowerCase();
+  if(!p.need.concat(p.opt).some(x=>nm.startsWith(x))){toast(f.name+' contains '+it.tag.name+', which isn’t part of this set (expected '+p.need.concat(p.opt).join(', ')+'). Use Advanced for other modules.');continue}
+  it.pre=p.id;const k=x=>x.tag.name+'|'+x.tag.id.split(' ')[0],i=S.ext.findIndex(x=>k(x)===k(it));if(i>=0)S.ext.splice(i,1);S.ext.push(it);n++}
+  catch(e){toast(f.name+': '+e.message+'.')}}
+ if(n)render()}
+function preView(){
+ const box=$('#xpre');box.textContent='';if(!S.a)return;
+ const adv=$('#xadv');if(S.ext.some(e=>!e.pre))adv.open=true;
+ const mk=(tag,txt,cls)=>{const e=document.createElement(tag);if(txt)e.textContent=txt;if(cls)e.className=cls;return e};
+ PRE.forEach(p=>{
+  const why=S.eligI||p.chk(S.a)||(S.eligX?'Needs the extended area, which isn’t available: '+S.eligX:''),on=!!S.pre[p.id]&&!why;
+  const c=mk('div','','pc'+(why?' dis':'')),h=mk('h4'),l=mk('label'),cb=document.createElement('input');
+  cb.type='checkbox';cb.checked=on;cb.disabled=!!why;
+  cb.onchange=()=>{S.pre[p.id]=cb.checked;if(!cb.checked)S.ext=S.ext.filter(x=>x.pre!==p.id);render()};
+  l.append(cb,' '+p.name);h.append(l);c.append(h,mk('p',p.desc));
+  if(why){const w=mk('p',why);w.style.color='var(--warn)';c.append(w)}
+  else if(on){
+   const ul=mk('ul');let miss=0;
+   p.need.concat(p.opt).forEach(x=>{const req=p.need.includes(x),e=preHas(p,x),old=S.a.mods.find(m=>m.name.toLowerCase()===x),
+    li=mk('li',e?'✓ '+e.tag.name+(e.tag.id?' · '+e.tag.id:'')+' · '+(e.size/1024).toFixed(1)+' KB'+(old?' (replaces the one already in this ROM)':''):x+(req?' · file needed':' · optional')+(old?' (this ROM already has one)':''),e?'g':req?'m':'');
+    if(!e&&req)miss++;ul.append(li)});
+   c.append(ul);
+   if(miss){const w=mk('p','Not complete yet: '+miss+' required file'+(miss>1?'s':'')+' still missing. Whatever you have added is still included in the result.');w.style.color='var(--warn)';c.append(w)}
+   const wn=p.warn&&p.warn(S.a);if(wn){const w=mk('p',wn);w.style.color='var(--warn)';c.append(w)}
+   c.append(mk('p',p.src));
+   const lab=mk('label','Add files…','btnlike'),inp=document.createElement('input');inp.type='file';inp.multiple=true;inp.hidden=true;
+   inp.onchange=()=>{addPre(p,[...inp.files]);inp.value=''};lab.append(inp);c.append(lab)}
+  box.append(c)})}
 async function addModules(list){
  if(S.eligI)return toast(S.eligI);
  let n=0;
  for(const f of list){const d=(await rd(f)).d;
   try{const it=loadModule(f.name,d);
-   const k=x=>x.tag.name+'|'+x.tag.id.split(' ')[0],i=S.ext.findIndex(x=>k(x)===k(it));if(i>=0)S.ext.splice(i,1);S.ext.push(it);n++}
+   const k=x=>x.tag.name+'|'+x.tag.id.split(' ')[0],i=S.ext.findIndex(x=>k(x)===k(it)),nm=it.tag.name.toLowerCase(),P=PRE.find(q=>S.pre[q.id]&&q.need.concat(q.opt).some(x=>nm.startsWith(x)));if(P)it.pre=P.id;if(i>=0)S.ext.splice(i,1);S.ext.push(it);n++}
   catch(e){toast(f.name+': '+e.message+'.')}}
  if(n){render();tab('ext')}}
 $('#pick2').onchange=e=>{addModules(e.target.files);e.target.value=''};
@@ -639,7 +686,7 @@ const kind=async f=>{const h=new Uint8Array(await f.slice(0,16).arrayBuffer());
  const e=(f.name.match(/\.(\w+)$/)||[])[1],x=e&&e.toLowerCase();if(x==='rom'||x==='bin'||x==='txt'||x==='csv')return x;
  const k=form(h);return k==='rom'||k==='enc'?'rom':k==='swp'?'bin':''};
 const rd=async f=>({n:f.name,d:new Uint8Array(await f.arrayBuffer())});
-function put(m,f){S.mode=m;S.f=f;S.flip=false;S.ext=[];S.out=null;S.sz=0;recompute();render();tab('mod');etab(S.mode==='bin'||S.mode==='cd32bin'?'rom':'bin')}
+function put(m,f){S.mode=m;S.f=f;S.flip=false;S.ext=[];S.pre={};S.out=null;S.sz=0;recompute();render();tab('mod');etab(S.mode==='bin'||S.mode==='cd32bin'?'rom':'bin')}
 async function load(list){
  const fl0=[...list];if(!fl0.length)return;toast('');
  const k0=await Promise.all(fl0.map(kind)),fl=[],k=[],mods=[];
