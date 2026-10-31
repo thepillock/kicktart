@@ -253,7 +253,7 @@ function has(d,t){const p=[...t].map(c=>c.charCodeAt(0)),e=d.length-p.length;
  for(let i=0;i<=e;i++){if(d[i]!==p[0])continue;let j=1;while(j<p.length&&d[i+j]===p[j])j++;if(j===p.length)return true}return false}
 // Admin mode (index.html?mode=admin) shows the Known Kickstarts tab and the "not in the list" warning.
 const ADMIN=/[?&#]mode=admin\b|#admin\b/.test(location.search+location.hash);if(ADMIN)document.body.classList.add('admin');
-let S={mode:'',f:[],rules:[],flip:false,a:null,x:null,hi:null,lo:null,kf:null,note:'',off:0,ext:[],pre:{},perr:{},keepPri:true,out:null,sz:0,res:null,eligI:'',eligX:''};
+let S={big:null,mode:'',f:[],rules:[],flip:false,a:null,x:null,hi:null,lo:null,kf:null,note:'',off:0,ext:[],pre:{},perr:{},keepPri:true,out:null,sz:0,res:null,eligI:'',eligX:''};
 S.base=parseRules(LIST);S.csv=[];S.rules=S.base;
 // <engine>
 const BASE=0xF80000,XB=0xE00000,BANK=524288;
@@ -327,6 +327,8 @@ function placeHunk(H,addr){
  H.forEach((h,i)=>{for(const[off,tg]of h.rel){const q=B[i]+off;if(q<0||q+4>n)throw new Error('a relocation points outside the code');p32(o,q,(u32(o,q)+addr+B[tg])>>>0)}});
  return o}
 function findTag(b,addr){for(let i=0;i+26<=b.length;i+=2)if(b[i]===0x4A&&b[i+1]===0xFC&&u32(b,i+2)===addr+i){const n=cstr(b,addr,u32(b,i+14));if(n)return{off:i,name:n,id:cstr(b,addr,u32(b,i+18))||'',pri:b[i+13]<<24>>24,type:b[i+12],ver:b[i+11]}}return null}
+// A file can hold several resident tags (e.g. compactflash.automount). The scan resumes at each tag's EndSkip, so a tag must hand over to the next one, and only the last one ends at the end of the module.
+function chainTags(b,addr,end){const t=[];for(let i=0;i+26<=b.length;i+=2)if(b[i]===0x4A&&b[i+1]===0xFC&&u32(b,i+2)===addr+i&&cstr(b,addr,u32(b,i+14)))t.push(i);t.forEach((o,k)=>p32(b,o+6,k+1<t.length?addr+t[k+1]:end));return t.length}
 function loadModule(name,d){
  if(!isHunk(d))throw new Error('not an Amiga hunk file');
  const H=parseHunk(d),pl=placeHunk(H,XB),tag=findTag(pl,XB);
@@ -369,7 +371,7 @@ function buildMods(main,mods,items,keep,eI,eX){
    if(old&&old.end){
     const s0=(old.start+3)&~3,addr=old.base+s0,pl=placeHunk(it.H,addr),tg=findTag(pl,addr);
     if(tg&&s0+pl.length<=old.end){
-     p32(pl,tg.off+6,old.base+old.end); // EndSkip stays where the old module's was
+     chainTags(pl,addr,old.base+old.end); // EndSkip stays where the old module's was
      if(keep)pl[tg.off+13]=old.pri&255;
      mr.fill(0,old.start,old.end);mr.set(pl,s0);r.mode='inplace';r.at=addr;done=true}}
    if(!done){
@@ -379,7 +381,7 @@ function buildMods(main,mods,items,keep,eI,eX){
     cur=(cur+3)&~3;const addr=XB+cur,pl=placeHunk(it.H,addr),tg=findTag(pl,addr);
     if(!tg)throw new Error(it.n+': resident tag not found');
     if(cur+pl.length>lim)throw new Error('The extension bank is full — remove a module.');
-    p32(pl,tg.off+6,addr+pl.length);
+    chainTags(pl,addr,addr+pl.length);
     if(old&&keep)pl[tg.off+13]=old.pri&255;
     if(old){mr[old.off]=0;mr[old.off+1]=0}
     ext.set(pl,cur);r.mode='ext';r.at=addr;cur+=pl.length}
@@ -444,9 +446,14 @@ function others(r,main){
 const sc=a=>(a.hdr?1:0)+(a.cs.ok?1:0);
 
 
+function bigImage(rom){ // a 1 MB image: Extended area and Kickstart halves, in either order
+ if(rom.length!==2*KB)return null;
+ for(const at of[KB,0]){const k=rom.subarray(at,at+KB);if(form(k)==='rom'&&csum(k).ok){const a=analyse(k);if(a.hdr)return{a,big:{rom,at,ext:analyse(rom.subarray(KB-at,2*KB-at))}}}}
+ return null}
+function bigNote(B){const e=B.ext,n=e.mods.map(m=>m.name);return '1 MB image: the Kickstart is the '+(B.at?'upper':'lower')+' 512 KB (shown below) and the extended area is the '+(B.at?'lower':'upper')+' half'+(n.length?', holding '+n.length+' module'+(n.length>1?'s':'')+': '+n.join(', '):' (no modules found)')+'. Exports use the whole 1 MB; to change modules, load the original 512 KB ROM instead.'}
 function recompute(){
- S.a=S.x=S.kf=null;S.note='';S.hi=S.lo=null;S.off=0;
- if(S.mode==='rom'){S.a=analyse(S.f[0].d);S.kf=S.f[0]}
+ S.big=null;S.a=S.x=S.kf=null;S.note='';S.hi=S.lo=null;S.off=0;
+ if(S.mode==='rom'){const B=bigImage(S.f[0].d);if(B){S.a=B.a;S.big=B.big;S.note=bigNote(B.big)}else S.a=analyse(S.f[0].d);S.kf=S.f[0]}
  else if(S.mode==='rom2'){
   const A=analyse(S.f[0].d),B=analyse(S.f[1].d);
   if(A.ext!==B.ext){S.a=A.ext?B:A;S.x=A.ext?A:B;S.kf=S.f[A.ext?1:0]}
@@ -458,14 +465,15 @@ function recompute(){
    if(d.length===2*KB){ // CD32: one 1MB file = Extended ROM and Kickstart, each split HI/LO
     const q=KB/2,k=join(d.subarray(q,2*q),d.subarray(3*q,4*q)),e=join(d.subarray(0,q),d.subarray(2*q,3*q));
     if(form(k)==='rom'&&csum(k).ok){S.mode='cd32bin';S.a=analyse(k);S.x=analyse(e);S.kf=S.f[0];S.note='CD32 image: a 512 KB Kickstart and a 512 KB Extended ROM share this 1 MB file.'}}
-   if(S.mode==='bin'){const r=mk(swap(d));S.a=r.x;S.note=r.n;S.kf=S.f[0]}}
+   if(S.mode==='bin'){const B=bigImage(swap(d));if(B){S.a=B.a;S.big=B.big;S.note=bigNote(B.big)}else{const r=mk(swap(d));S.a=r.x;S.note=r.n}S.kf=S.f[0]}}
   else{
    const A=mk(join(S.f[0].d,S.f[1].d)),B=mk(join(S.f[1].d,S.f[0].d));
    let first=sc(B.x)<=sc(A.x);
    S.note=sc(A.x)===sc(B.x)?'Couldn’t tell HI from LO — assuming the first file is HI. Use “Swap HI/LO” if that’s wrong.':'HI/LO order detected automatically.';
    if(S.flip){first=!first;S.note='HI/LO order swapped manually.'}
    S.hi=S.f[first?0:1];S.lo=S.f[first?1:0];S.kf=S.hi;
-   const R=first?A:B;S.a=R.x;if(R.n)S.note+='\n'+R.n}}}
+   const R=first?A:B;S.a=R.x;if(R.n)S.note+='\n'+R.n;
+   const Bg=bigImage(join(S.hi.d,S.lo.d));if(Bg){S.a=Bg.a;S.big=Bg.big;S.note=bigNote(Bg.big)}}}}
 function warns(){
  const a=S.a,w=[];
  if(a.f==='enc')w.push('Encrypted Cloanto/Amiga Forever ROM — it can’t be converted by byte-swapping.');
@@ -482,7 +490,7 @@ function warns(){
 const sz=n=>n>=1048576?n/1048576+' MB':n/1024+' KB';
 const baseName=()=>stem((S.kf||S.f[0]).n).replace(/[_-](hi|lo|high|low)$/i,'');
 const isCD=()=>S.mode==='cd32bin'||S.mode==='rom2';
-const work=()=>{const r=S.res;return r&&r.ok?(r.ext?cat(r.ext,r.main):r.main):S.a.rom};
+const work=()=>{if(S.big)return S.big.rom;const r=S.res;return r&&r.ok?(r.ext?cat(r.ext,r.main):r.main):S.a.rom};
 function fillSizes(per){
  const sel=$('#sz'),opts=[262144,524288,1048576,2097152];
  const want=opts.includes(S.sz)?S.sz:Math.min(2097152,Math.max(per,KB>per&&!(S.a&&S.a.ext)?KB:per));
@@ -551,7 +559,7 @@ function render(){
  const X=S.x;$('#xr').hidden=$('#xrd').hidden=!X;
  if(X){const cs=X.cs.ok?'checksum valid':X.hdr?'checksum not valid':'no header';set('#xrd',(X.m?X.m.name:'Extended ROM')+' · '+kb(X.rom.length)+' · '+cs+' · '+(X.known?'known good':'not in known list')+'\n'+X.sha)}
  $('#note').textContent=[S.note].concat(warns()).filter(Boolean).join('\n');
- noteUnknown(a,S.kf&&S.kf.n);if(S.x)noteUnknown(S.x,S.f[S.f.length-1].n);
+ if(!S.big)noteUnknown(a,S.kf&&S.kf.n);if(S.x)noteUnknown(S.x,S.f[S.f.length-1].n);
  extCompute();outputs();mods();hex();extView();knownView()}
 const verOf=id=>{const m=/(\d+)\.(\d+)/.exec(id);return m?m[1]+'.'+m[2]:''};
 function dlMod(m){const h=toHunk(S.a.rom,m);if(h.err)return toast(h.err);
@@ -592,6 +600,7 @@ function inElig(){ // can modules be replaced in place?
  if(isCD())return'CD32 images aren’t supported here yet.';
  if(!a.hdr)return'This doesn’t look like a Kickstart image.';
  if(a.ext)return'This is an Extended ROM, not a Kickstart.';
+ if(S.big)return'This is already a 1 MB image, so its modules can’t be changed here. Load the original 512 KB ROM to make changes.';
  if(a.rom.length>KB)return'Images over 512 KB can’t be edited.';
  if(!a.cs.ok)return'The checksum of this ROM isn’t valid, so it isn’t safe to modify.';
  return''}
